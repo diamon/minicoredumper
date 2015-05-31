@@ -1,0 +1,18 @@
+
+minicoredumper Release Notes
+============================
+
+1.0.0 (2015-06-01)
+
+    * Initial release.
+
+    * Known problems:
+
+        - support for Position Independent Executables (PIE) is incomplete
+
+        - broken for 32-bit applications using more than 2GB memory
+
+        - unable to dump libraries if they are linked using relative paths
+
+        - minicoredumper_dbusd does not know if registered applications
+          exit without unregistering

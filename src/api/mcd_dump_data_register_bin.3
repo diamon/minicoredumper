@@ -1,0 +1,139 @@
+'\" t
+.\"
+.\" Author: John Ogness
+.\"
+.\" This file has been put into the public domain.
+.\" You can do whatever you want with this file.
+.\"
+.TH MCD_DUMP_DATA_REGISTER_BIN 3 "2015-05-31" "Ericsson" "minicoredumper"
+.
+.SH NAME
+mcd_dump_data_register_bin \- register binary data to be dumped
+.
+.SH SYNOPSIS
+.B #include <minicoredumper.h>
+.PP
+.nf
+.BI "int mcd_dump_data_register_bin(const char *" ident ,
+.BI "                               unsigned long " dump_scope ,
+.BI "                               mcd_dump_data_t *" saveptr ,
+.BI "                               void *" data_ptr ,
+.BI "                               enum mcd_dump_data_flags " ptr_flags ,
+.BI "                               size_t " data_size );
+.fi
+.PP
+Compile and link with
+.IR -lminicoredumper .
+.
+.SH DESCRIPTION
+The
+.BR mcd_dump_data_register_bin ()
+function registers binary data to be dumped.
+.I ident
+is a string to identify the binary dump later. If non-NULL, it must be
+unique! If
+.I ident
+is NULL, the data will only dumped if this is the crashing application,
+in which case the data will be explicitly stored in the
+.I core
+file. The data will only be dumped if a scope value greater than or equal to
+.I dump_scope
+is requested by the
+.BR minicoredumper (1).
+If
+.I saveptr
+is non-NULL, a pointer to the registered dump will be stored there. This
+is needed if
+.BR mcd_dump_data_unregister (3)
+will be used.
+.I data_ptr
+contains a pointer to the memory location of the data to dump (or a pointer
+to that pointer).
+.I ptr_flags
+specifies how
+.I data_ptr
+and
+.I data_size
+should be interpreted when dumping data.
+.I data_size
+specifies the number of bytes of data to dump (or a pointer to the number).
+.
+.SH "RETURN VALUE"
+.BR mcd_dump_data_register_bin ()
+returns 0 on success, otherwise an error value is returned.
+.
+.SH ERRORS
+.TP
+.B ENOMEM
+Insufficient memory available to allocate internal structures.
+.TP
+.B EINVAL
+.I data_ptr
+was NULL or
+.I data_size
+was 0.
+.TP
+.B EEXIST
+A binary or text dump matching the non-NULL
+.I ident
+was already registered.
+.
+.SH EXAMPLES
+Register a binary dump with direct data and direct size.
+.PP
+.RS
+.nf
+mcd_dump_data_t dd1;
+unsigned long val1;
+
+mcd_dump_data_register_bin("bdump1.bin", 6, &dd1, &val1,
+                           MCD_DATA_PTR_DIRECT | MCD_LENGTH_DIRECT,
+                           sizeof(val1));
+.fi
+.RE
+.PP
+Register a binary dump with indirect data and direct size.
+.PP
+.RS
+.nf
+mcd_dump_data_t dd2;
+unsigned long *val2;
+
+val2 = malloc(sizeof(unsigned long));
+
+mcd_dump_data_register_bin("bdump2.bin", 6, &dd2, &val2,
+                           MCD_DATA_PTR_INDIRECT | MCD_LENGTH_DIRECT,
+                           sizeof(*val2));
+.fi
+.RE
+.PP
+Register a binary dump with indirect data and indirect size.
+.PP
+.RS
+.nf
+mcd_dump_data_t dd3;
+unsigned long *val3;
+size_t s3;
+
+s3 = sizeof(unsigned long);
+val3 = malloc(s3);
+
+mcd_dump_data_register_bin("bdump3.bin", 6, &dd3, &val3,
+                           MCD_DATA_PTR_INDIRECT | MCD_LENGTH_INDIRECT,
+                           (size_t)&s3);
+.fi
+.RE
+.
+.SH BUGS
+.I MCD_DATA_PTR_INDIRECT
+and
+.I MCD_LENGTH_INDIRECT
+allow an application to change the size and location of data to dump
+during run-time. However, such changes should be performed carefully
+because an application can not know when a dump will occur.
+.
+.SH "SEE ALSO"
+.BR libminicoredumper (7),
+.BR mcd_dump_data_unregister (3)
+.PP
+The DiaMon Workgroup: <http://www.diamon.org>

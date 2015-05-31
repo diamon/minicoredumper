@@ -1,0 +1,39 @@
+'\" t
+.\"
+.\" Author: John Ogness
+.\"
+.\" This file has been put into the public domain.
+.\" You can do whatever you want with this file.
+.\"
+.TH MINICOREDUMPER_DBUSD 1 "2015-05-31" "Ericsson" "minicoredumper"
+.
+.SH NAME
+minicoredumper_dbusd \- a D-Bus daemon to provide communication between
+.BR minicoredumper (1)
+and applications using
+.BR libminicoredumper (7).
+.
+.SH SYNOPSIS
+.B minicoredumper_dbusd
+.
+.SH DESCRIPTION
+.B minicoredumper_dbusd
+is responsible for signaling the applications registered with
+.BR libminicoredumper (7)
+to dump their data to the configured dump subdirectory.
+.B minicoredumper_dbusd
+must be running before any applications using
+.BR libminicoredumper (7)
+are started.
+.
+.SH NOTES
+.B minicoredumper_dbusd
+uses "org.ericsson.mcd" for both the D-Bus service name and service interface.
+.
+.SH "SEE ALSO"
+.BR minicoredumper (1),
+.BR libminicoredumper (7),
+.BR minicoredumper.cfg.json (5),
+.BR mcd_dump_data_dbus_start (3)
+.PP
+The DiaMon Workgroup: <http://www.diamon.org>

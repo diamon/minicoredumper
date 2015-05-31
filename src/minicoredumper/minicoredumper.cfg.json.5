@@ -1,0 +1,197 @@
+'\" t
+.\"
+.\" Author: John Ogness
+.\"
+.\" This file has been put into the public domain.
+.\" You can do whatever you want with this file.
+.\"
+.TH MINICOREDUMPER.CFG.JSON 5 "2015-05-31" "Ericsson" "minicoredumper"
+.
+.SH NAME
+minicoredumper.cfg.json \- the main configuration file for
+.BR minicoredumper (1)
+.
+.SH DESCRIPTION
+.B minicoredumper.cfg.json
+is the main configuration file for
+.BR minicoredumper (1).
+It serves 2 purposes:
+.RS
+.IP 1. 3
+define where dumped files should be located
+.IP 2. 3
+specify various
+.BR minicoredumper (1)
+recepts for various conditions
+.RE
+.
+.SH "FILE FORMAT"
+The file uses the JSON format. The options are:
+.RS
+.TP
+.B base_dir
+(string) The root directory where the dumped data will be stored.
+The dump files will be stored in a sub-directory using the template:
+.br
+<command_basename>.<timestamp>.<pid>
+.TP
+.B watch
+(array) A set of conditions, where each condition can specify its own
+recept file. See
+.B CONDITIONS
+for configuration options for a condition.
+.RE
+.
+.SH CONDITIONS
+A condition can contain any combination of these options:
+.RS
+.TP
+.B exe
+(string) The full path to the binary being executed as retured by
+.BR readlink (2).
+.TP
+.B comm
+(string) The basename of the command that was run
+(the 7th argument of the
+.BR minicoredumper (1)
+call).
+.TP
+.B recept
+(string) The full path to the recept file to use if this condition matches.
+.IR
+.RE
+.PP
+Both
+.I exe
+and
+.I comm
+can contain the * charater for wildcard matching.
+.PP
+The conditions are checked to find a match in the order specified. The
+first match will cause the minicoredumper to use the recept for that
+condition. If no conditions match, the minicoredumper will exit and
+no
+.BR core (5)
+dump will be generated.
+.PP
+If
+.I exe
+and/or
+.I comm
+are not specified for a condition, they will use a default value "*".
+.PP
+If
+.I recept
+is not specified for a condition, the built-in minicoredumper defaults
+are used.
+.PP
+.I exe
+and
+.I comm
+have a "logical AND" relationship. A "logical OR" behavior can be
+achieved by specifying one condition with only
+.I exe
+and another watch with only
+.IR comm .
+.
+.SH NOTES
+The exact path where data is dumped is logged to
+.BR syslog (3).
+.PP
+If an 8th argument of
+.BR minicoredumper (1)
+is provided, the name and location of this file will depend on that value.
+.
+.SH EXAMPLES
+Here is an example configuration file:
+.PP
+.nf
+{
+    "base_dir": "/tmp",
+    "watch": [
+        {
+            "exe": "*/my_example_app",
+            "recept": "/etc/minicoredumper/example.recept.json"
+        },
+        {
+            "comm": "example_app"
+            "recept": "/etc/minicoredumper/example.recept.json"
+        },
+        {
+            "exe": "/bin/*"
+        },
+        {
+            "recept": "/etc/minicoredumper/generic.recept.json"
+        }
+    ]
+}
+.fi
+.PP
+In this example, dumped data will be stored in a directory named:
+.br
+.RS
+/tmp/<command_basename>.<timestamp>.<pid>
+.RE
+.PP
+For example, if there is a symbolic link:
+.PP
+.RS
+/usr/bin/example_app -> /opt/my_apps/bin/my_example_app
+.RE
+.PP
+and the user runs "example_app" and it crashes, the newly created files
+could be found here:
+.br
+.RS
+/tmp/example_app.1412893730.15143
+.RE
+.PP
+The example above contains 4 conditions that will be checked in order.
+.PP
+The first condition will match if the binary "*/my_example_app" caused the
+core dump. It will use the recept file:
+.br
+.RS
+/etc/minicoredumper/example.recept.json
+.RE
+.PP
+The second condition will match if the basename of the command is
+"example_app". It will also use the recept file:
+.br
+.RS
+/etc/minicoredumper/example.recept.json
+.RE
+.PP
+The third condition will match for any binaries under "/bin/*". It will use
+the built-in
+.BR minicoredumper (1)
+defaults.
+.PP
+The fourth watch will match everything. It will use the recept file:
+.br
+.RS
+/etc/minicoredumper/generic.recept.json
+.RE
+.PP
+A minimal (yet still useful) configuration file could look like this:
+.PP
+.nf
+{
+    "base_dir": "/tmp",
+    "watch": [
+        {
+            "exe": "*"
+        }
+    ]
+}
+.fi
+.
+.SH FILES
+/etc/minicoredumper/minicoredumper.cfg.json
+.
+.SH "SEE ALSO"
+.BR minicoredumper (1),
+.BR libminicoredumper (7),
+.BR minicoredumper.recept.json (5)
+.PP
+The DiaMon Workgroup: <http://www.diamon.org>

@@ -1,0 +1,17 @@
+#
+# Author: John Ogness
+#
+# This file has been put into the public domain.
+# You can do whatever you want with this file.
+#
+
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libminicoredumper
+Description: minicoredumper library
+Version: @VERSION@
+Libs: -L${libdir}
+Cflags: -I${includedir}

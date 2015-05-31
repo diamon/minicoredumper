@@ -1,0 +1,45 @@
+'\" t
+.\"
+.\" Author: John Ogness
+.\"
+.\" This file has been put into the public domain.
+.\" You can do whatever you want with this file.
+.\"
+.TH MCD_DUMP_DATA_DBUS_START 3 "2015-05-31" "Ericsson" "minicoredumper"
+.
+.SH NAME
+mcd_dump_data_dbus_start \- start D-Bus communication thread
+.
+.SH SYNOPSIS
+.B #include <minicoredumper.h>
+.PP
+.B int mcd_dump_data_dbus_start(void);
+.PP
+Compile and link with
+.IR -lminicoredumper .
+.
+.SH DESCRIPTION
+The
+.BR mcd_dump_data_dbus_start ()
+function starts a new thread to register with the D-Bus daemon
+.BR minicoredumper_dbusd (1)
+and wait for incoming requests to dump data registered with
+.BR libminicoredumper (7).
+This function must be called if an application is expected to dump its data
+upon the request of
+.BR minicoredumper (1).
+.
+.SH "RETURN VALUE"
+.BR mcd_dump_data_dbus_start ()
+always returns 0 unless D-Bus support was not compiled in
+.BR libminicoredumper (7),
+in which case it returns -1. It is not possible for an application to know
+if the registration with
+.BR minicoredumper_dbusd (1)
+was successful.
+.
+.SH "SEE ALSO"
+.BR libminicoredumper (7),
+.BR minicoredumper_dbusd (1)
+.PP
+The DiaMon Workgroup: <http://www.diamon.org>

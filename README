@@ -1,0 +1,90 @@
+
+minicoredumper
+==============
+
+Overview
+--------
+
+    minicoredumper provides an alternate core dump facility for Linux
+    to allow minimal and customized crash dumps. It is composed
+    primarily of 3 parts:
+
+      1. minicoredumper - a customizable core dump application to replace
+                          the default Linux core dump facility
+
+      2. libminicoredumper - a library allowing applications to register
+                             data for dumping
+
+      3. minicoredumper_dbusd - a D-Bus service to allow multiple
+                                applications to dump their data if any
+                                of the applications crash
+
+License
+-------
+
+    Please view the file COPYING for copyright and license information.
+
+Installation
+------------
+
+    This package uses autotools:
+
+      $ ./configure
+      $ make
+      $ sudo make install
+
+    In the "etc" directory there are sample configuration and D-Bus
+    permission files.
+
+    To inform Linux to use the minicoredumper for the core dump facility:
+
+      $ echo '|/usr/bin/minicoredumper %p %u %g %s %t %h %e' | \
+             sudo tee /proc/sys/kernel/core_pattern
+
+Documentation
+-------------
+
+    The following man pages are provided with this package:
+
+      libminicoredumper (7)
+      minicoredumper (1)
+      minicoredumper.cfg.json (5)
+      minicoredumper.recept.json (5)
+      minicoredumper_dbusd (1)
+      coreinject (1)
+      mcd_dump_data_register_bin (3)
+      mcd_dump_data_register_text (3)
+      mcd_dump_data_unregister (3)
+      mcd_dump_data_dbus_start (3)
+      mcd_dump_data_dbus_stop (3)
+
+Demo
+----
+
+    This packages provides an example application to test the
+    minicoredumper. The example application is not build by default.
+    This must be activated with the --with-minicoredumper_demo
+    argument for configure.
+
+    The example application minicoredumper_demo uses libminicoredumper
+    to register variables and then crashes. This should trigger the
+    minicoredumper. The example also registers with minicoredumper_dbusd
+    via D-Bus. When another application crashes, the example application
+    will respond by dumping its data as well.
+
+    Assuming minicoredumper is installed and activated, D-Bus is
+    installed, and minicoredumper_dbusd is running, the demo can be
+    executed with the following commands:
+
+      $ minicoredumper_demo 6 & sleep 3 && minicoredumper_demo
+
+    This will start one instance of minicoredumper_demo in the background
+    that will gracefully exit after 6 seconds. After waiting 3 seconds,
+    it also starts another instance of minicoredumper_demo in the
+    foreground that will crash immediately.
+
+    In the minicoredumper base_dir there should now be a directory
+    containing the dump data from the second (crashed) instance of
+    minicoredumper_demo. In that directory there should also be a
+    subdirectory "dumps-NNN" containing the dump data from the first
+    instance of minicoredumper_demo (that had a graceful exit).

@@ -1,0 +1,214 @@
+'\" t
+.\"
+.\" Author: John Ogness
+.\"
+.\" This file has been put into the public domain.
+.\" You can do whatever you want with this file.
+.\"
+.TH MINICOREDUMPER.RECEPT.JSON 5 "2015-05-31" "Ericsson" "minicoredumper"
+.
+.SH NAME
+minicoredumper.recept.json \- a recept file used by the
+.BR minicoredumper (1)
+.
+.SH DESCRIPTION
+A recept configuration file defines the dump behavior of the
+.BR minicoredumper (1).
+.B minicoredumper.recept.json
+is a sample recept file name. The actual name depends on the
+.I recept
+option in the main configuration file
+.BR minicoredumper.cfg.json (5).
+.
+.SH "FILE FORMAT"
+The file uses the JSON format. The options are:
+.RS
+.TP
+.B stacks
+(list) A set of options specifying how and which stacks are to be dumped. See
+.B STACKS
+for details about the available options.
+.TP
+.B maps
+(list) A set of options specifying shared objects, whose virtual memory
+areas should also be dumped. See
+.B MAPS
+for details about the available options.
+.TP
+.B buffers
+(array) A set of buffers, each specifying global data within the
+application that should also be dumped. See
+.B BUFFERS
+for configuration options for a buffer.
+.TP
+.B dump_auxv_so_list
+(boolean) Whether the shared object list should be dumped. This is used by
+.BR gdb (1)
+to determine which shared objects were linked and to which address they
+were mapped.
+.TP
+.B dump_pthread_list
+(boolean) Whether the pthread list should be dumped. This is used by
+.BR gdb (1)
+to identify and iterate through all the threads.
+.TP
+.B dump_robust_mutex_list
+(boolean) Whether the list of robust mutexes should be dumped. This is used by
+.BR gdb (1)
+to identify mutex states.
+.TP
+.B dump_scope
+(integer) Only registered dumps at or below this value will be dumped.
+.TP
+.B live_dumper
+(boolean) Whether the
+.BR minicoredumper (1)
+should notify registered dump applications via D-Bus.
+.TP
+.B write_proc_info
+(boolean) Whether interesting /proc files should be copied to the
+dump directory.
+.TP
+.B write_debug_log
+(boolean) Whether
+.BR minicoredumper (1)
+messages should be logged to "debug.txt" in the dump directory. This is
+really only useful for debugging
+.BR minicoredumper (1).
+.TP
+.B dump_fat_core
+(boolean) Whether all virtual memory areas should be dumped.
+This will generate a separate "fatcore" file that is typically larger
+than the default Linux
+.BR core (5)
+files. This is really only useful for debugging
+.BR minicoredumper (1).
+.RE
+.
+.SH STACKS
+The
+.I stacks
+option specifies a set of options related to dumping stacks.
+The options are:
+.RS
+.TP
+.B dump_stacks
+(boolean) Whether stack dumping should occur. If this option is false,
+all other
+.I stacks
+options are ignored.
+.TP
+.B first_thread_only
+(boolean) Whether only the stack of the crashing thread should be dumped.
+.TP
+.B max_stack_size
+(integer) The maximum stack size in bytes to dump. 0 for no limit.
+.RE
+.PP
+The
+.BR minicoredumper (1)
+only dumps the actual used part of a stack area. If a stack is truncated
+because of the
+.I max_stack_size
+option, the bottommost part of the used stack is dumped (i.e. the part of the stack that includes the function that caused the core dump).
+.
+.SH MAPS
+The
+.I maps
+option specifies a set of options identify shared objects, whose virtual
+memory areas should also be dumped. This is useful if the shared objects
+maintain their own static off-stack data that will be required during
+debugging. The options are:
+.RS
+.TP
+.B dump_by_name
+(array of strings) Shared object names to be dumped. The names can contain
+the * character for wildcard matching.
+.RE
+.PP
+Although not critical,
+.BR gdb (1)
+often tries to access data from the "[vdso]" virtual shared object.
+If this is not dumped,
+.BR gdb (1)
+may complain with the warning:
+.PP
+.RS
+Failed to read a valid object file image from memory.
+.RE
+.
+.SH BUFFERS
+The
+.I buffers
+option specifies an array of buffers, with each buffer specifying global
+data within the application that should also be dumped. The options for
+each specified buffer are:
+.RS
+.TP
+.B symname
+(string) The name of the global variable.
+.TP
+.B follow_ptr
+(boolean) Whether the global variable is a pointer and the data pointed
+to by that pointer should be dumped.
+.TP
+.B data_len
+(integer) The size of the global variable in bytes. If
+.I follow_ptr
+is true, this is the size of the data pointed to.
+.RE
+.
+.SH NOTES
+The
+.IR dump_auxv_so_list ", " dump_pthread_list ", " dump_robust_mutex_list
+options should generally be set to true. They provide important
+information to
+.BR gdb (1)
+and require a relatively small dump space.
+.
+.SH EXAMPLE
+Here is an example of a recept file:
+.PP
+.nf
+{
+    "stacks": {
+        "dump_stacks": true,
+        "first_thread_only": true,
+        "max_stack_size": 16384
+    },
+    "maps": {
+        "dump_by_name": [
+            "*my_lib_to_debug*so*",
+            "[vdso]"
+        ]
+    },
+    "buffers": [
+        {
+            "symname": "my_allocated_struct",
+            "follow_ptr": true,
+            "data_len": 42
+        },
+        {
+            "symname": "my_short",
+            "follow_ptr": false,
+            "data_len": 2
+        }
+    ],
+    "dump_auxv_so_list": true,
+    "dump_pthread_list": true,
+    "dump_robust_mutex_list": true,
+    "dump_scope": 8,
+    "live_dumper": false,
+    "write_proc_info": true,
+    "write_debug_log": false,
+    "dump_fat_core": false
+}
+.fi
+.
+.SH "SEE ALSO"
+.BR minicoredumper (1),
+.BR libminicoredumper (7),
+.BR minicoredumper.cfg.json (5),
+.BR minicoredumper_dbusd (1)
+.PP
+The DiaMon Workgroup: <http://www.diamon.org>

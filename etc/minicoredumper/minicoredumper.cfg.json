@@ -1,0 +1,19 @@
+{
+    "base_dir": "/tmp",
+    "watch": [
+        {
+            "exe": "*/my_example_app",
+            "recept": "/etc/minicoredumper/example.recept.json"
+        },
+        {
+            "comm": "my_example_app",
+            "recept": "/etc/minicoredumper/example.recept.json"
+        },
+        {
+            "exe": "/bin/*"
+        },
+        {
+            "recept": "/etc/minicoredumper/generic.recept.json"
+        }
+    ]
+}

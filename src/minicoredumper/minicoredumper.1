@@ -1,0 +1,70 @@
+'\" t
+.\"
+.\" Author: John Ogness
+.\"
+.\" This file has been put into the public domain.
+.\" You can do whatever you want with this file.
+.\"
+.TH MINICOREDUMPER 1 "2015-05-31" "Ericsson" "minicoredumper"
+.
+.SH NAME
+minicoredumper \- create a customized minimal
+.BR core (5)
+dump
+.
+.SH SYNOPSIS
+.B minicoredumper
+.I pid
+.I uid
+.I gid
+.I signal
+.I timestamp
+.I hostname
+.I executable
+.RI [ configuration-file ]
+.
+.SH DESCRIPTION
+.BR minicoredumper
+provides a highly configurable core dump mechanism. This program is intended
+to be executed by the Linux
+.BR core (5)
+dump facility. By default the main configuration file is:
+.PP
+.RS
+/etc/minicoredumper/minicoredumper.cfg.json
+.RE
+.PP
+but can be overridden if the optional 8th argument is specified.
+.PP
+.BR minicoredumper
+uses
+.BR syslog (3)
+to log its activity. The syslog
+.I ident
+is "minicoredumper" and the syslog
+.I facility
+is
+.IR LOG_SYSLOG .
+.
+.SH EXAMPLE
+Setup
+.BR minicoredumper
+to be used for
+.BR core (5)
+dumps.
+.PP
+.RS
+.nf
+echo '|/usr/bin/minicoredumper %p %u %g %s %t %h %e' > \\
+     /proc/sys/kernel/core_pattern
+.fi
+.RE
+.
+.SH FILES
+/etc/minicoredumper/minicoredumper.cfg.json
+.
+.SH "SEE ALSO"
+.BR libminicoredumper (7),
+.BR minicoredumper.cfg.json (5)
+.PP
+The DiaMon Workgroup: <http://www.diamon.org>

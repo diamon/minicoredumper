@@ -1,0 +1,20 @@
+{
+    "stacks": {
+        "dump_stacks": true,
+        "first_thread_only": false,
+        "max_stack_size": 0
+    },
+    "maps": {
+        "dump_by_name": [
+            "[vdso]"
+        ]
+    },
+    "dump_auxv_so_list": true,
+    "dump_pthread_list": true,
+    "dump_robust_mutex_list": true,
+    "dump_scope": 8,
+    "live_dumper": false,
+    "write_proc_info": true,
+    "write_debug_log": false,
+    "dump_fat_core": false
+}

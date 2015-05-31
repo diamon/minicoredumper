@@ -1,0 +1,128 @@
+'\" t
+.\"
+.\" Author: John Ogness
+.\"
+.\" This file has been put into the public domain.
+.\" You can do whatever you want with this file.
+.\"
+.TH MCD_DUMP_DATA_REGISTER_TEXT 3 "2015-05-31" "Ericsson" "minicoredumper"
+.
+.SH NAME
+mcd_dump_data_register_text, mcd_vdump_data_register_text \-
+register text data to be dumped
+.
+.SH SYNOPSIS
+.B #include <minicoredumper.h>
+.PP
+.nf
+.BI "int mcd_dump_data_register_text(const char *" ident ,
+.BI "                                unsigned long " dump_scope ,
+.BI "                                mcd_dump_data_t *" saveptr ,
+.BI "                                const char *" fmt ", ...);"
+.fi
+.PP
+.B #include <stdarg.h>
+.PP
+.nf
+.BI "int mcd_vdump_data_register_text(const char *" ident ,
+.BI "                                 unsigned long " dump_scope ,
+.BI "                                 mcd_dump_data_t *" saveptr ,
+.BI "                                 const char *" fmt ,
+.BI "                                 va_list " ap);
+.fi
+.PP
+Compile and link with
+.IR -lminicoredumper .
+.
+.SH DESCRIPTION
+The
+.BR mcd_dump_data_register_text ()
+function registers text data to be dumped.
+.I ident
+is a string to identify the text dump later. It must be non-NULL.
+If the
+.I ident
+is not unique, the text dump is appended to previously registered
+text dumps with the same
+.IR ident .
+The data will only be dumped if a scope value greater than or equal to
+.I dump_scope
+is requested by the
+.BR minicoredumper (1).
+If
+.I saveptr
+is non-NULL, a pointer to the registered dump will be stored there. This
+is needed if
+.BR mcd_dump_data_unregister (3)
+will be used.
+.I fmt
+is a printf format string used to print the text data to a dump file.
+The remaining arguments are pointer arguments specified by
+.IR fmt .
+Each pointer argument must be of a type that is appropriate for the
+associated length modifier and conversion specifier in
+.IR fmt .
+.PP
+The
+.BR mcd_vdump_data_register_text ()
+function is equivalent to the function
+.BR mcd_dump_data_register_text ()
+except that it is called with a
+.I va_list
+instead of a variable number of arguments. These functions do not call the
+.I va_end
+macro. Because they invoke the
+.I va_arg
+macro, the value of
+.I ap
+is undefined after the call. See
+.BR stdarg (3).
+.
+.SH "RETURN VALUE"
+.BR mcd_dump_data_register_text ()
+and
+.BR mcd_vdump_data_register_text ()
+return 0 on success, otherwise an error value is returned.
+.
+.SH ERRORS
+.TP
+.B ENOMEM
+Insufficient memory available to allocate internal structures.
+.TP
+.B EINVAL
+.I ident
+was NULL or
+.I fmt
+was NULL.
+.TP
+.B EEXIST
+A binary dump matching
+.I ident
+was already registered.
+.
+.SH EXAMPLE
+Register a text dump with 2 different sized variables.
+.PP
+.RS
+.nf
+mcd_dump_data_t dd;
+unsigned long val1;
+unsigned char val2;
+
+mcd_dump_data_register_text("tdump.txt", 6, &dd,
+                            "val1=0x%lx val2=0x%hhx\\n",
+                            &val1, &val2);
+.fi
+.RE
+.
+.SH BUGS
+When dumping, each pointer argument is typecasted based on the
+length modifier and conversion specifier associated with that
+argument. If this does not match the true type of the variable,
+the dumped text may be invalid.
+.
+.SH "SEE ALSO"
+.BR libminicoredumper (7),
+.BR mcd_dump_data_unregister (3),
+.PP
+The DiaMon Workgroup: <http://www.diamon.org>

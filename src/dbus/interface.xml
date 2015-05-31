@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE node PUBLIC
+  "-//freedesktop//DTD D-Bus Object Introspection 1.0//EN"
+  "http://standards.freedesktop.org/dbus/1.0/introspect.dtd">
+
+<node>
+  <interface name="org.ericsson.mcd">
+    <!-- Method definitions -->
+    <method name="getcrashstate">
+      <arg type="i" name="cur_value" direction="out"/>
+    </method>
+    <method name="setcrashstate">
+      <arg type="i" name="pid" direction="in"/>
+      <arg type="i" name="state" direction="in"/>
+      <arg type="i" name="dump_scope" direction="in"/>
+      <arg type="s" name="dump_path" direction="in"/>
+    </method>
+    <method name="getdumpinfo">
+      <arg type="s" name="dump_path" direction="out"/>
+      <arg type="i" name="dump_scope" direction="out"/>
+    </method>
+    <method name="getdumpstate">
+      <arg type="d" name="dump_state" direction="out"/>
+    </method>
+    <method name="setdumpstate">
+      <arg type="s" name="app_uuid" direction="in"/>
+    </method>
+    <method name="register">
+      <arg type="s" name="app_uuid" direction="in"/>
+      <arg type="i" name="pid" direction="in"/>
+    </method>
+    <method name="unregister">
+      <arg type="s" name="app_uuid" direction="in"/>
+      <arg type="i" name="pid" direction="in"/>
+    </method>
+    <!-- Signal (D-Bus) definitions -->
+
+    <signal name="dump">
+      <arg type="s" name="change_source_name" direction="out"/>
+    </signal>
+    <signal name="dump_mcd_done">
+      <arg type="s" name="change_source_name" direction="out"/>
+    </signal>
+    <signal name="dump_app_done">
+      <arg type="s" name="change_source_name" direction="out"/>
+    </signal>
+    <signal name="register">
+      <arg type="s" name="change_source_name" direction="out"/>
+    </signal>
+  </interface>
+</node>

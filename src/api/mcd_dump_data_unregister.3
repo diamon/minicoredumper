@@ -1,0 +1,47 @@
+'\" t
+.\"
+.\" Author: John Ogness
+.\"
+.\" This file has been put into the public domain.
+.\" You can do whatever you want with this file.
+.\"
+.TH MCD_DUMP_DATA_UNREGISTER 3 "2015-05-31" "Ericsson" "minicoredumper"
+.
+.SH NAME
+mcd_dump_data_unregister \- unregister previously registered dump data
+.
+.SH SYNOPSIS
+.B #include <minicoredumper.h>
+.PP
+.BI "int mcd_dump_data_unregister(struct mcd_dump_data *" dd );
+.PP
+Compile and link with
+.IR -lminicoredumper .
+.
+.SH DESCRIPTION
+The
+.BR mcd_dump_data_unregister ()
+function unregisters dump data previously registered with
+.BR mcd_dump_data_register_bin (3),
+.BR mcd_dump_data_register_text (3),
+.BR mcd_vdump_data_register_text (3).
+.I dd
+is a pointer to the registered dump that was saved during registration.
+.
+.SH "RETURN VALUE"
+.BR mcd_dump_data_unregister ()
+returns 0 on success, otherwise an error value is returned.
+.
+.SH ERRORS
+.TP
+.B ENOKEY
+.I dd
+was not found in the list of registered dumps.
+.
+.SH "SEE ALSO"
+.BR libminicoredumper (7),
+.BR mcd_dump_data_register_bin (3)
+.BR mcd_dump_data_register_text (3)
+.BR mcd_vdump_data_register_text (3)
+.PP
+The DiaMon Workgroup: <http://www.diamon.org>
