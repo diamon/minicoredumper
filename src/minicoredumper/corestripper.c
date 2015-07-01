@@ -2455,7 +2455,7 @@ int main(int argc, char **argv)
 		get_robust_mutex_list(&di);
 
 	/* dump any maps configured for dumping */
-	if (di.cfg->prog_config.buffers)
+	if (di.cfg->prog_config.maps.nglobs > 0)
 		dump_maps(&di);
 
 	/* dump any buffers configured for dumping */
