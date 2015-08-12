@@ -97,7 +97,7 @@ static ssize_t read_file_fd(int fd, char *dst, int len)
 	do {
 		r = read(fd, dst + size, len);
 		if (r == -1) {
-			info("Couldn't read file fd%s; error %s", fd,
+			info("Couldn't read file fd=%d; error %s", fd,
 			     strerror(errno));
 			return r;
 		}
@@ -2477,7 +2477,7 @@ int main(int argc, char **argv)
 	if (di.fatcore_fd >= 0)
 		close(di.fatcore_fd);
 	if (di.mem_fd >= 0)
-		close(di.fatcore_fd);
+		close(di.mem_fd);
 	if (di.info_file)
 		fclose(di.info_file);
 
