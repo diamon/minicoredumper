@@ -60,6 +60,9 @@ struct prog_config {
 	struct stack_config stack;
 	struct maps_config maps;
 	struct interesting_buffer *buffers;
+	char *core_compressor;
+	char *core_compressor_ext;
+	bool core_compressed;
 	bool dump_fat_core;
 	bool dump_auxv_so_list;
 	bool dump_pthread_list;

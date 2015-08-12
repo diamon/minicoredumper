@@ -41,6 +41,7 @@
 #include <gelf.h>
 #include <thread_db.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/procfs.h>
@@ -347,8 +348,6 @@ static int init_di(struct dump_info *di, char **argv, int argc)
 		return 1;
 	}
 
-	info("core path: %s", di->core_path);
-
 	if (di->cfg->prog_config.dump_fat_core) {
 		if (asprintf(&tmp_path, "%s/fatcore", di->dst_dir) == -1)
 			return 1;
@@ -608,6 +607,7 @@ static int copy_data(int src, int dest, int dest2, size_t len, char *pagebuf)
 		if (ret < 0) {
 			info("write core failed at 0x%lx",
 			     lseek64(dest, 0, SEEK_CUR));
+			return -1;
 		}
 
 		if (dest2 >= 0) {
@@ -615,10 +615,538 @@ static int copy_data(int src, int dest, int dest2, size_t len, char *pagebuf)
 			if (ret < 0) {
 				info("write core2 failed at 0x%lx",
 				     lseek64(dest2, 0, SEEK_CUR));
+				return -1;
 			}
 		}
 
 		len -= chunk;
+	}
+
+	return 0;
+}
+
+struct sparse {
+	char offset[12];
+	char numbytes[12];
+};
+
+struct tar_header {
+	char name[100];
+	char mode[8];
+	char uid[8];
+	char gid[8];
+	char numbytes[12];
+	char mtime[12];
+	char checksum[8];
+	char type;
+	char linkname[100];
+	char magic[6];
+	char version[2];
+	char username[32];
+	char groupname[32];
+	char dev_major[8];
+	char dev_minor[8];
+	char atime[12];
+	char ctime[12];
+	char multivolume_offset[12];
+	char longnames[4];
+	char pad0;
+	struct sparse sparse_map[4];
+	char is_extended;
+	char filesize[12];
+	char pad1[17];
+};
+
+#define BLOCK_SIZE 512
+
+/* group core data items into 512-byte blocks */
+static void assign_tar_blocks(struct core_data *core_file)
+{
+	struct core_data *cur;
+	off64_t blk_start;
+	off64_t blk_end;
+	int blk_id = 0;
+
+	if (!core_file)
+		return;
+
+	blk_start = core_file->start & ~(BLOCK_SIZE - 1);
+	blk_end = blk_start + BLOCK_SIZE;
+
+	for (cur = core_file; cur; cur = cur->next) {
+		blk_start = cur->start & ~(BLOCK_SIZE - 1);
+
+		if (blk_start > blk_end) {
+			/* new block */
+			blk_id++;
+			blk_end = blk_start + BLOCK_SIZE;
+		}
+
+		while (cur->end > blk_end)
+			blk_end += BLOCK_SIZE;
+
+		cur->blk_id = blk_id;
+	}
+}
+
+static struct core_data *get_tar_block_map(struct core_data *cur,
+					   off64_t *offset, off64_t *numbytes)
+{
+	/* offset based on first item of block */
+	*offset = cur->start & ~(BLOCK_SIZE - 1);
+
+	/* skip to last item of block */
+	while (cur->next && cur->next->blk_id == cur->blk_id)
+		cur = cur->next;
+
+	/* sized based on last item of block */
+	*numbytes = cur->end - *offset;
+
+	/* return first item of next block */
+	return cur->next;
+}
+
+static unsigned int get_tar_checksum(struct tar_header *header)
+{
+	char *buf = (char *)header;
+	int sum = 0;
+	int i;
+
+	for (i = 0; i < BLOCK_SIZE; i++)
+		sum += 0xff & buf[i];
+
+	return sum;
+}
+
+static off64_t block_roundup(off64_t b)
+{
+	if ((b & (BLOCK_SIZE - 1))) {
+		b += BLOCK_SIZE;
+		b &= ~(BLOCK_SIZE - 1);
+	}
+
+	return b;
+}
+
+static int dump_zero(int fd, off64_t count)
+{
+	while (count) {
+		if (write_file_fd(fd, "", 1) < 0)
+			return -1;
+		count--;
+	}
+
+	return 0;
+}
+
+static int open_compressor(struct dump_info *di, char **path)
+{
+	const char *ext = di->cfg->prog_config.core_compressor_ext;
+	const char *cmd = di->cfg->prog_config.core_compressor;
+	char *tmp_path;
+	int pipefd[2];
+	pid_t pid;
+	int fd;
+
+	*path = NULL;
+
+	if (asprintf(&tmp_path, "%s/core.tar.%s", di->dst_dir,
+		     ext ? ext : "compressed") == -1) {
+		return -1;
+	}
+
+	fd = open(tmp_path, O_CREAT|O_RDWR, S_IRUSR|S_IWUSR);
+	if (fd == -1) {
+		info("failed to open compressed core file: %s", tmp_path);
+		free(tmp_path);
+		return -1;
+	}
+
+	info("executing compressor %s to create %s", cmd, tmp_path);
+
+	if (pipe(pipefd) != 0) {
+		free(tmp_path);
+		return -1;
+	}
+
+	pid = fork();
+	if (pid == -1) {
+		close(pipefd[0]);
+		close(pipefd[1]);
+		free(tmp_path);
+		return -1;
+	}
+
+	if (pid != 0) {
+		/* parent */
+		signal(SIGPIPE, SIG_IGN);
+		close(fd);
+		close(pipefd[0]);
+		*path = tmp_path;
+		return pipefd[1];
+	}
+
+	/* child */
+	close(pipefd[1]);
+
+	dup2(pipefd[0], STDIN_FILENO);
+	dup2(fd, STDOUT_FILENO);
+
+	execlp(cmd, cmd, NULL);
+
+	info("failed to execute compressor: %s", cmd);
+	exit(1);
+}
+
+static void close_compressor(int fd)
+{
+	close(fd);
+	wait(NULL);
+	signal(SIGPIPE, SIG_DFL);
+}
+
+static int dump_tar(struct dump_info *di)
+{
+	struct core_data *extended_data = NULL;
+	struct core_data *next_block;
+	size_t block_bytes_written;
+	struct tar_header hdr;
+	struct core_data *cur;
+	off64_t total_bytes;
+	char *path = NULL;
+	off64_t numbytes;
+	off64_t offset;
+	int err = -1;
+	char *buf;
+	int fd;
+	int i;
+
+	if (!di->cfg->prog_config.core_compressor)
+		return -1;
+
+	buf = malloc(PAGESZ);
+	if (!buf)
+		return -1;
+
+	memset(&hdr, 0, sizeof(hdr));
+
+	assign_tar_blocks(di->core_file);
+
+	/* fill header */
+
+	snprintf(hdr.name, sizeof(hdr.name), "core");
+	snprintf(hdr.mode, sizeof(hdr.mode), "%07o", 0644);
+	snprintf(hdr.uid, sizeof(hdr.uid), "%07o", 0);
+	snprintf(hdr.gid, sizeof(hdr.gid), "%07o", 0);
+	snprintf(hdr.mtime, sizeof(hdr.mtime), "%011lo", time(NULL));
+	memset(hdr.checksum, ' ', sizeof(hdr.checksum));
+	hdr.type = 'S';
+	memcpy(hdr.magic, "ustar ", 6);
+	hdr.version[0] = ' ';
+	snprintf(hdr.username, sizeof(hdr.username), "root");
+	snprintf(hdr.groupname, sizeof(hdr.groupname), "root");
+
+	total_bytes = 0;
+	next_block = di->core_file;
+	for (i = 0; next_block; i++) {
+		next_block = get_tar_block_map(next_block, &offset, &numbytes);
+		/* if this is not the last block, fill the full block */
+		if (next_block)
+			numbytes = block_roundup(numbytes);
+		/* dump sparse header */
+		if (i < 4) {
+			snprintf(hdr.sparse_map[i].offset,
+				 sizeof(hdr.sparse_map[i].offset),
+				 "%011zo", offset);
+			snprintf(hdr.sparse_map[i].numbytes,
+				 sizeof(hdr.sparse_map[i].numbytes),
+				 "%011zo", numbytes);
+
+			/* save first extended sparse block for later */
+			if (i == 3)
+				extended_data = next_block;
+		}
+		total_bytes += numbytes;
+	}
+
+	snprintf(hdr.numbytes, sizeof(hdr.numbytes), "%011lo", total_bytes);
+
+	if (extended_data)
+		hdr.is_extended = 1;
+	snprintf(hdr.filesize, sizeof(hdr.filesize),
+		 "%011zo", di->core_file_size);
+
+	/* calculate checksum */
+	snprintf(hdr.checksum, sizeof(hdr.checksum),
+		 "%06o", get_tar_checksum(&hdr));
+
+	fd = open_compressor(di, &path);
+	if (fd < 0)
+		goto out;
+
+	/* write header */
+	if (write_file_fd(fd, (char *)&hdr, sizeof(hdr)) < 0)
+		goto out;
+
+	/* write extended sparse header */
+	while (extended_data) {
+		struct sparse s;
+
+		block_bytes_written = 0;
+		next_block = extended_data;
+		for (i = 0; next_block && i < 21; i++) {
+			next_block = get_tar_block_map(next_block, &offset,
+						       &numbytes);
+
+			/* if this is not the last block, fill full block */
+			if (next_block)
+				numbytes = block_roundup(numbytes);
+
+			snprintf(s.offset, sizeof(s.offset), "%011zo", offset);
+			snprintf(s.numbytes, sizeof(s.numbytes),
+				 "%011zo", numbytes);
+			if (write_file_fd(fd, (char *)&s, sizeof(s)) < 0)
+				goto out;
+			block_bytes_written += sizeof(s);
+		}
+		extended_data = next_block;
+		if (extended_data) {
+			char c = 1;
+			if (write_file_fd(fd, &c, sizeof(c)) < 0)
+				goto out;
+			block_bytes_written += 1;
+		}
+		/* fill to end of block */
+		if (dump_zero(fd, BLOCK_SIZE -
+				  (block_bytes_written % BLOCK_SIZE)) < 0) {
+			goto out;
+		}
+	}
+
+	/* write data blocks */
+	block_bytes_written = 0;
+	next_block = get_tar_block_map(di->core_file, &offset, &numbytes);
+	for (cur = di->core_file; cur; cur = cur->next) {
+		if (cur == next_block) {
+			if (block_bytes_written % BLOCK_SIZE != 0) {
+				/* fill to end of block */
+				if (dump_zero(fd, BLOCK_SIZE -
+					          (block_bytes_written %
+						   BLOCK_SIZE)) < 0) {
+					goto out;
+				}
+			}
+			next_block = get_tar_block_map(next_block, &offset,
+						       &numbytes);
+			block_bytes_written = 0;
+		}
+
+		if (lseek64(cur->mem_fd, cur->mem_start, SEEK_SET) == -1) {
+			info("lseek di->mem_fd failed at 0x%lx",
+			     cur->mem_start);
+			goto out;
+		}
+
+		if (cur->start != offset) {
+			/* fill to beginning of block part */
+			if (dump_zero(fd, cur->start - offset) < 0)
+				goto out;
+			block_bytes_written += cur->start - offset;
+		}
+
+		if (copy_data(cur->mem_fd, fd, -1,
+		    cur->end - cur->start, buf) < 0) {
+			goto out;
+		}
+		block_bytes_written += cur->end - cur->start;
+		offset = cur->end;
+	}
+
+	/* 2 empty blocks as EOF */
+	if (dump_zero(fd, BLOCK_SIZE * 2) < 0)
+		goto out;
+
+	err = 0;
+
+	di->cfg->prog_config.core_compressed = true;
+
+	info("compressed core path: %s", path);
+out:
+	if (fd >= 0)
+		close_compressor(fd);
+	if (path) {
+		if (err)
+			unlink(path);
+		free(path);
+	}
+	free(buf);
+
+	return err;
+}
+
+static void dump_mini_core(struct dump_info *di)
+{
+	struct core_data *cur;
+	char *buf;
+
+	buf = malloc(PAGESZ);
+	if (!buf)
+		return;
+
+	/* set core size */
+	if (pwrite(di->core_fd, "", 1, di->core_file_size - 1) != 1)
+		info("failed to set core size: %zu bytes", di->core_file_size);
+
+	for (cur = di->core_file; cur; cur = cur->next) {
+		/* do not dump on ourself */
+		if (cur->mem_fd == di->core_fd)
+			continue;
+
+		if (lseek64(cur->mem_fd, cur->mem_start, SEEK_SET) == -1) {
+			info("lseek di->mem_fd failed at 0x%lx",
+			     cur->mem_start);
+			goto out;
+		}
+
+		if (lseek64(di->core_fd, cur->start, SEEK_SET) == -1) {
+			info("lseek di->core_fd failed at 0x%lx", cur->start);
+			goto out;
+		}
+
+		if (copy_data(cur->mem_fd, di->core_fd, -1,
+			      cur->end - cur->start, buf) < 0) {
+			goto out;
+		}
+	}
+
+	info("core path: %s", di->core_path);
+out:
+	free(buf);
+}
+
+static int add_core_data(struct dump_info *di, off64_t dest_offset, size_t len,
+			 int src_fd, off64_t src_offset)
+{
+	struct core_data *prev = NULL;
+	off64_t start = dest_offset;
+	struct core_data *cur;
+	struct core_data *tmp;
+	int done = 0;
+	off64_t end;
+
+	if (len == 0)
+		return 0;
+
+	end = start + len;
+
+	for (cur = di->core_file; cur && !done; cur = cur->next) {
+		if (end < cur->start) {
+			/* insert new block */
+			tmp = calloc(1, sizeof(*tmp));
+			if (!tmp)
+				return ENOMEM;
+
+			tmp->start = start;
+			tmp->end = end;
+			tmp->mem_start = src_offset;
+			tmp->mem_fd = src_fd;
+			tmp->next = cur;
+
+			if (prev)
+				prev->next = tmp;
+			else
+				di->core_file = tmp;
+			done = 1;
+
+		} else if (end == cur->start) {
+			if ((src_offset + len) == cur->mem_start &&
+			    src_fd == cur->mem_fd) {
+				/* adjacent block, expand existing block */
+				cur->start = start;
+				cur->mem_start = src_offset;
+			} else {
+				/* non-adjacent block, insert new block */
+				tmp = calloc(1, sizeof(*tmp));
+				if (!tmp)
+					return ENOMEM;
+
+				tmp->start = start;
+				tmp->end = end;
+				tmp->mem_start = src_offset;
+				tmp->mem_fd = src_fd;
+				tmp->next = cur;
+
+				if (prev)
+					prev->next = tmp;
+				else
+					di->core_file = tmp;
+			}
+			done = 1;
+
+		} else if (start < cur->end) {
+			/* overlapping block, expand existing block */
+			if (start < cur->start) {
+				cur->start = start;
+				cur->mem_start = src_offset;
+			}
+			if (end > cur->end)
+				cur->end = end;
+			done = 1;
+
+		} else if (start == cur->end) {
+			if (src_offset == (cur->mem_start + len)) {
+				/* adjacent block, expand existing block */
+				cur->end = end;
+				done = 1;
+			}
+		}
+
+		while (cur->next) {
+			if (cur->next->start < cur->end) {
+				/* consolidate overlapping block */
+				tmp = cur->next;
+				if (tmp->end > cur->end)
+					cur->end = tmp->end;
+				cur->next = tmp->next;
+				free(tmp);
+				continue;
+
+			} else if (cur->next->start == cur->end) {
+				if ((cur->mem_start + (cur->end - cur->start))
+				    == cur->next->mem_start) {
+					/* consolidate adjacent block */
+					tmp = cur->next;
+					cur->end = tmp->end;
+					cur->next = tmp->next;
+					free(tmp);
+					continue;
+				}
+			}
+
+			break;
+		}
+
+		if (done)
+			return 0;
+
+		prev = cur;
+	}
+
+	tmp = calloc(1, sizeof(*tmp));
+	if (!tmp)
+		return ENOMEM;
+
+	tmp->start = start;
+	tmp->end = end;
+	tmp->mem_start = src_offset;
+	tmp->mem_fd = src_fd;
+
+	if (prev) {
+		tmp->next = prev->next;
+		prev->next = tmp;
+	} else {
+		tmp->next = di->core_file;
+		di->core_file = tmp;
 	}
 
 	return 0;
@@ -691,17 +1219,19 @@ again:
 		goto out;
 	}
 
-	/* make the core big enough to fit all vma areas */
-	if (pwrite(di->core_fd, "", 1, di->vma_end - 1) != 1)
-		info("failed to set core size: %lu bytes", di->vma_end);
-
 	if (di->vma_start > (unsigned long)pos) {
 		/* copy the rest of core up to the first vma */
 		len = di->vma_start - pos;
 
 		/* position in all cores is already correct, now copy */
-		copy_data(src, di->core_fd, di->fatcore_fd, len, buf);
+		if (copy_data(src, di->core_fd, di->fatcore_fd, len, buf) < 0)
+			goto out;
 	}
+
+	add_core_data(di, 0, di->vma_start, di->core_fd, 0);
+
+	/* make the core big enough to fit all vma areas */
+	di->core_file_size = di->vma_end;
 out:
 	free(buf);
 	return ret;
@@ -904,7 +1434,6 @@ static int dump_vma(struct dump_info *di, unsigned long start, size_t len,
 	unsigned long end;
 	char *desc = NULL;
 	va_list ap;
-	char *buf;
 
 	tmp = get_vma_pos(di, start);
 	if (!tmp) {
@@ -932,10 +1461,6 @@ static int dump_vma(struct dump_info *di, unsigned long start, size_t len,
 	if (start >= end)
 		return 0;
 
-	buf = malloc(PAGESZ);
-	if (!buf)
-		return ENOMEM;
-
 	len = end - start;
 
 	va_start(ap, fmt);
@@ -945,22 +1470,8 @@ static int dump_vma(struct dump_info *di, unsigned long start, size_t len,
 	if (desc)
 		free(desc);
 
-	if (lseek64(di->mem_fd, start, SEEK_SET) == -1) {
-		info("lseek di->mem_fd failed at 0x%lx", start);
-		goto out;
-	}
-
-	if (lseek64(di->core_fd, tmp->file_off + start - tmp->start,
-		    SEEK_SET) == -1) {
-		info("lseek di->core_fd failed at 0x%lx",
-		     tmp->file_off + start - tmp->start);
-		goto out;
-	}
-
-	copy_data(di->mem_fd, di->core_fd, -1, len, buf);
-out:
-	free(buf);
-	return 0;
+	return add_core_data(di, tmp->file_off + start - tmp->start, len,
+			     di->mem_fd, start);
 }
 
 static int note_cb(struct dump_info *di, Elf *elf, GElf_Phdr *phdr)
@@ -1742,7 +2253,8 @@ static void dump_fat_core(struct dump_info *di)
 		lseek64(di->mem_fd, tmp->start, SEEK_SET);
 		lseek64(di->fatcore_fd, tmp->file_off, SEEK_SET);
 
-		copy_data(di->mem_fd, di->fatcore_fd, -1, len, buf);
+		if (copy_data(di->mem_fd, di->fatcore_fd, -1, len, buf) < 0)
+			break;
 	}
 }
 
@@ -2464,6 +2976,12 @@ int main(int argc, char **argv)
 	/* dump registered application data */
 	dyn_dump(&di);
 
+	/* dump sparse data to tar'd core file */
+	if (dump_tar(&di) != 0) {
+		/* dump sparse data to core file */
+		dump_mini_core(&di);
+	}
+
 	/* dump a fat core (if configured) */
 	if (di.cfg->prog_config.dump_fat_core)
 		dump_fat_core(&di);
@@ -2480,6 +2998,9 @@ int main(int argc, char **argv)
 		close(di.mem_fd);
 	if (di.info_file)
 		fclose(di.info_file);
+
+	if (di.cfg->prog_config.core_compressed)
+		unlink(di.core_path);
 
 	closelog();
 

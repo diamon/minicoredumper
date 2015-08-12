@@ -137,6 +137,44 @@ static int read_prog_map_config(json_value *v_root, struct prog_config *cfg)
 	return 0;
 }
 
+static int read_prog_compression_config(json_value *v_root,
+					struct prog_config *cfg)
+{
+	unsigned int i;
+
+	if (v_root->type != json_object)
+		return -1;
+
+	for (i = 0; i < v_root->u.object.length; i++) {
+		json_value *v = v_root->u.object.values[i].value;
+		const char *n = v_root->u.object.values[i].name;
+
+		if (strcmp(n, "compressor") == 0) {
+			if (v->type != json_string)
+				return -1;
+			if (cfg->core_compressor)
+				free(cfg->core_compressor);
+			cfg->core_compressor = strdup(v->u.string.ptr);
+			if (!cfg->core_compressor)
+				return -1;
+
+		} else if (strcmp(n, "extension") == 0) {
+			if (v->type != json_string)
+				return -1;
+			if (cfg->core_compressor_ext)
+				free(cfg->core_compressor_ext);
+			cfg->core_compressor_ext = strdup(v->u.string.ptr);
+			if (!cfg->core_compressor_ext)
+				return -1;
+	
+		} else {
+			info("WARNING: ignoring unknown config item: %s", n);
+		}
+	}
+
+	return 0;
+}
+
 static int read_buffer_item(json_value *v_root, struct prog_config *cfg)
 {
 	struct interesting_buffer *tmp;
@@ -265,6 +303,10 @@ static int read_prog_config(json_value *v_root, struct prog_config *cfg)
 
 		} else if (strcmp(n, "maps") == 0) {
 			if (read_prog_map_config(v, cfg) != 0)
+				return -1;
+
+		} else if (strcmp(n, "compression") == 0) {
+			if (read_prog_compression_config(v, cfg) != 0)
 				return -1;
 
 		} else if (strcmp(n, "dump_robust_mutex_list") == 0) {

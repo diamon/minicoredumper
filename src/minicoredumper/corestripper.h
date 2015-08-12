@@ -41,6 +41,18 @@ struct core_vma {
 	struct core_vma *next;
 };
 
+struct core_data {
+	off64_t start;
+	off64_t end;
+
+	off64_t mem_start;
+	int mem_fd;
+
+	int blk_id;
+
+	struct core_data *next;
+};
+
 struct interesting_vma {
 	unsigned long start;
 	unsigned long end;
@@ -94,6 +106,9 @@ struct dump_info {
 	unsigned long vma_start;
 	unsigned long vma_end;
 	struct core_vma *vma;
+
+	struct core_data *core_file;
+	off64_t core_file_size;
 };
 
 #endif
