@@ -167,6 +167,12 @@ void *start_dbus_gloop(void *arg)
 
 	g_main_loop_run(mainloop);
 
+	org_ericsson_mcd_unregister(proxy, ai.uuid, ai.pid, &error);
+	if (error)
+		handleError("Failed to Unregister", error->message, FALSE);
+	else
+		g_print("APP: Application unregistered with %s \n", ai.uuid);
+
 	return NULL;
 }
 
