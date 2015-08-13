@@ -85,7 +85,7 @@ static void handleError(const char *msg, const char *reason, gboolean fatal)
 static void valueChangedSignalHandler(DBusGProxy *proxy, const char *valueName,
 				      gpointer userData)
 {
-	if (!strcmp(valueName, "dump_mcd_done")) {
+	if (!strcmp(valueName, SIGNAL_DUMP_MCD_DONE)) {
 		info("Corestripper all dbus registered apps have dumped!");
 		g_main_loop_quit(mainloop);
 	}

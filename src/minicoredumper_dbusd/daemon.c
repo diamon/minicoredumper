@@ -236,7 +236,7 @@ gboolean value_object_setdumpstate(CrashObject *obj, gchar *app_uuid,
 		/* check if all apps have dumped ! */
 		if (!klass->dump_apps) {
 			value_object_emitSignal(obj, E_SIGNAL_DUMP_MCD_DONE,
-						"dump_mcd_done");
+						SIGNAL_DUMP_MCD_DONE);
 			klass->state = STATE_D_RUN;
 			klass->mcd_state = STATE_MCD_DUMP_DONE;
 			dbg("All applications have dumped their hooks!");
@@ -383,7 +383,7 @@ gboolean value_object_setcrashstate(CrashObject *obj, gint pid, gint mcd_state,
 		klass->state = STATE_D_DUMP;
 		klass->dump_scope = dump_scope;
 		klass->mcd_state = STATE_MCD_CRASHED;
-		value_object_emitSignal(obj, E_SIGNAL_DUMP, "dump"); /* XXX */
+		value_object_emitSignal(obj, E_SIGNAL_DUMP, SIGNAL_DUMP);
 		g_timeout_add(1000, (GSourceFunc)timerCallback, obj);
 	}
 

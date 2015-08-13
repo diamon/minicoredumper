@@ -66,7 +66,7 @@ static void appSignalHandler(DBusGProxy * proxy, const char *signalName,
 	org_ericsson_mcd_getcrashstate(proxy, &v, &error);
 	g_clear_error(&error);
 
-	if (!strcmp(signalName, "dump")) {
+	if (!strcmp(signalName, SIGNAL_DUMP)) {
 		org_ericsson_mcd_getdumpinfo(proxy, &dump_path, &dump_scope,
 					    &error);
 
