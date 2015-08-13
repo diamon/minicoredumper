@@ -26,3 +26,7 @@ endif
 if COND_MINICOREDUMPER_DEMO
 SUBDIRS += minicoredumper_demo
 endif
+
+if COND_MINICOREDUMPER_TRIGGER
+SUBDIRS += minicoredumper_trigger
+endif

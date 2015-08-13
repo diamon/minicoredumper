@@ -220,8 +220,8 @@ gboolean value_object_setdumpstate(CrashObject *obj, gchar *app_uuid,
 	g_assert(obj != NULL);
 
 	klass = VALUE_OBJECT_GET_CLASS(obj);
-	if (klass->mcd_state == STATE_MCD_CRASHED) {
-		gint len;
+	if (klass->mcd_state == STATE_MCD_CRASHED ||
+	    klass->mcd_state == STATE_MCD_USER_DUMP) {
 		GSList *tlist;
 
 		tlist = g_slist_find_custom(klass->dump_apps,
@@ -355,8 +355,10 @@ gboolean value_object_setcrashstate(CrashObject *obj, gint pid, gint mcd_state,
 	g_assert(obj != NULL);
 
 	klass = VALUE_OBJECT_GET_CLASS(obj);
-	if ((klass->state == STATE_D_RUN) &&
-	    (mcd_state == STATE_MCD_CRASHED ||
+	if (klass->state != STATE_D_RUN)
+		return TRUE;
+
+	if ((mcd_state == STATE_MCD_CRASHED ||
 	     mcd_state == STATE_MCD_DUMP_DONE)) {
 		GSList *tlist;
 
@@ -383,6 +385,16 @@ gboolean value_object_setcrashstate(CrashObject *obj, gint pid, gint mcd_state,
 		klass->state = STATE_D_DUMP;
 		klass->dump_scope = dump_scope;
 		klass->mcd_state = STATE_MCD_CRASHED;
+		value_object_emitSignal(obj, E_SIGNAL_DUMP, SIGNAL_DUMP);
+		g_timeout_add(1000, (GSourceFunc)timerCallback, obj);
+
+	} else if (mcd_state == STATE_MCD_USER_DUMP) {
+		klass->dump_apps = g_slist_copy(klass->registered_apps);
+		klass->dump_path = g_strdup(dump_path);
+		klass->apps_dump_state = STATE_APPS_DUMP;
+		klass->state = STATE_D_DUMP;
+		klass->dump_scope = dump_scope;
+		klass->mcd_state = STATE_MCD_USER_DUMP;
 		value_object_emitSignal(obj, E_SIGNAL_DUMP, SIGNAL_DUMP);
 		g_timeout_add(1000, (GSourceFunc)timerCallback, obj);
 	}

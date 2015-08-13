@@ -1,0 +1,37 @@
+'\" t
+.\"
+.\" Author: John Ogness
+.\"
+.\" This file has been put into the public domain.
+.\" You can do whatever you want with this file.
+.\"
+.TH MINICOREDUMPER_TRIGGER 1 "2015-08-13" "Ericsson" "minicoredumper"
+.
+.SH NAME
+minicoredumper_trigger \- a D-Bus client to trigger dumps for all
+applications using
+.BR libminicoredumper (7).
+.
+.SH SYNOPSIS
+.B minicoredumper_trigger
+.I dump-directory
+.I dump-scope
+.
+.SH DESCRIPTION
+.B minicoredumper_trigger
+will signal
+.BR libminicoredumper_dbusd (1)
+to notify all applications registered with
+.BR libminicoredumper (7)
+to dump their data to the specified absolute path
+.IR dump-directory .
+The applications will dump all data that was
+registered with a scope value less than or equal to the
+.IR dump-scope .
+.
+.SH "SEE ALSO"
+.BR minicoredumper (1),
+.BR minicoredumper_dbusd (1),
+.BR libminicoredumper (7)
+.PP
+The DiaMon Workgroup: <http://www.diamon.org>

@@ -56,5 +56,6 @@
 #define STATE_MCD_NOTDEF	5
 #define STATE_MCD_CRASHED	6
 #define STATE_MCD_DUMP_DONE	7
+#define STATE_MCD_USER_DUMP	8
 
 #endif
