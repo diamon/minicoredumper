@@ -229,13 +229,12 @@ gboolean value_object_setdumpstate(CrashObject *obj, gchar *app_uuid,
 					    (GCompareFunc)cmp_uuid);
 		if (tlist != NULL) {
 			dbg("Removed app_uuid: %s from dump list", app_uuid);
-			klass->dump_apps = g_slist_remove(klass->dump_apps,
-							  tlist);
+			klass->dump_apps =
+				g_slist_delete_link(klass->dump_apps, tlist);
 		}
 
 		/* check if all apps have dumped ! */
-		len = g_slist_length(klass->dump_apps);
-		if (len == 0) {
+		if (!klass->dump_apps) {
 			value_object_emitSignal(obj, E_SIGNAL_DUMP_MCD_DONE,
 						"dump_mcd_done");
 			klass->state = STATE_D_RUN;
@@ -268,10 +267,13 @@ gboolean value_object_unregister(CrashObject *obj, gchar *app_uuid,
 
 		tlist = g_slist_find_custom(klass->registered_apps, app_uuid,
 					    (GCompareFunc)cmp_uuid);
-		if (tlist == NULL) {
+		if (tlist != NULL) {
 			dbg("Unregister app_uuid: %s", app_uuid);
 			klass->registered_apps =
-				g_slist_remove(klass->registered_apps, tlist);
+				g_slist_remove_link(klass->registered_apps,
+						    tlist);
+			free(tlist->data);
+			g_slist_free(tlist);
 			return TRUE;
 		}
 	}
@@ -369,7 +371,10 @@ gboolean value_object_setcrashstate(CrashObject *obj, gint pid, gint mcd_state,
 			dbg("Remove crashed app with pid: %i removed from "
 			    "application list", pid);
 			klass->registered_apps =
-				g_slist_remove(klass->registered_apps, tlist);
+				g_slist_remove_link(klass->registered_apps,
+						    tlist);
+			free(tlist->data);
+			g_slist_free(tlist);
 		}
 
 		klass->dump_apps = g_slist_copy(klass->registered_apps);
