@@ -2078,10 +2078,8 @@ static int dump_data_file_bin(struct dump_info *di, struct mcd_dump_data *dd,
 	fwrite(buf, length, 1, file);
 
 	core_pos = get_core_pos(di, addr);
-	if (core_pos != (off_t)-1) {
-		add_symbol_map_entry(di, core_pos, sizeof(unsigned long),
-				     'D', dd->ident);
-	}
+	if (core_pos != (off_t)-1)
+		add_symbol_map_entry(di, core_pos, length, 'D', dd->ident);
 out:
 	free(buf);
 	return ret;
