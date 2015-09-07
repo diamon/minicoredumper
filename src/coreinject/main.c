@@ -127,8 +127,8 @@ static int get_symbol_data(const char *symname, FILE *f_symbol,
 {
 	struct symbol_data *d;
 	unsigned long offset;
-	unsigned long size;
 	char line[128];
+	size_t size;
 	char type;
 	char *p;
 	int i;
@@ -148,7 +148,7 @@ static int get_symbol_data(const char *symname, FILE *f_symbol,
 		strip_endline(line);
 
 		/* ignore invalid lines */
-		if (sscanf(line, "%lx %ld %c ", &offset, &size, &type) != 3)
+		if (sscanf(line, "%lx %zx %c ", &offset, &size, &type) != 3)
 			continue;
 
 		/* locate symbol name */
