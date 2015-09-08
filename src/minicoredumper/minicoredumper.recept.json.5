@@ -181,15 +181,13 @@ file. The compressor must support stdin as input and stdout as output.
 Examples of such compressors are
 .BR gzip (1),
 .BR bzip2 (1),
-.BR xz (1).
+.BR xz (1),
+.BR cat (1).
 Either the full path to the compressor can be specified or just the
 compressor filename if the compressor can be found in the default search
-path. To maximize compression, the
+path. The uncompressed
 .BR core (5)
-file will packed in a sparse tar archive before being passed to the
-compressor. The uncompressed
-.BR core (5)
-file and the sparse tar archive are created in memory. Thus the
+file and (if enabled) the sparse tar archive are created in memory. Thus the
 .I compressor
 option can be very useful if very limited dump space is available.
 .TP
@@ -197,6 +195,17 @@ option can be very useful if very limited dump space is available.
 (string) The file extension of the compressed tar archive. It is appended
 to the filename "core.tar." as a convenience to the user. If not specified,
 "compressed" will be appended.
+.TP
+.B in_tar
+(boolean) Whether the
+.BR core (5)
+file should be packed as a sparse file into a
+.BR tar (1)
+archive before being compressed. This preserves the sparse properties of the
+.BR core (5)
+file. A
+.I compressor
+must be specified.
 .
 .SH NOTES
 The
@@ -235,8 +244,9 @@ Here is an example of a recept file:
         }
     ],
     "compression": {
-        "compressor": "bzip2",
-        "extension": "bz2"
+        "compressor": "gzip",
+        "extension": "gz",
+        "in_tar": true
     },
     "dump_auxv_so_list": true,
     "dump_pthread_list": true,

@@ -167,6 +167,11 @@ static int read_prog_compression_config(json_value *v_root,
 			if (!cfg->core_compressor_ext)
 				return -1;
 	
+		} else if (strcmp(n, "in_tar") == 0) {
+			if (v->type != json_boolean)
+				return -1;
+			cfg->core_in_tar = v->u.boolean;
+	
 		} else {
 			info("WARNING: ignoring unknown config item: %s", n);
 		}
@@ -586,6 +591,9 @@ static void set_config_defaults(struct prog_config *cfg)
 
 	/* dump everything */
 	cfg->dump_scope = -1;
+
+	/* for compression, pack in tarball */
+	cfg->core_in_tar = true;
 }
 
 int init_prog_config(struct config *cfg, const char *cfg_file)

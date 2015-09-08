@@ -740,7 +740,8 @@ static int dump_zero(int fd, off64_t count)
 	return 0;
 }
 
-static int open_compressor(struct dump_info *di, char **path)
+static int open_compressor(struct dump_info *di, const char *core_suffix,
+			   char **path)
 {
 	const char *ext = di->cfg->prog_config.core_compressor_ext;
 	const char *cmd = di->cfg->prog_config.core_compressor;
@@ -751,7 +752,7 @@ static int open_compressor(struct dump_info *di, char **path)
 
 	*path = NULL;
 
-	if (asprintf(&tmp_path, "%s/core.tar.%s", di->dst_dir,
+	if (asprintf(&tmp_path, "%s/core%s.%s", di->dst_dir, core_suffix,
 		     ext ? ext : "compressed") == -1) {
 		return -1;
 	}
@@ -806,7 +807,7 @@ static void close_compressor(int fd)
 	signal(SIGPIPE, SIG_DFL);
 }
 
-static int dump_tar(struct dump_info *di)
+static int dump_compressed_tar(struct dump_info *di)
 {
 	struct core_data *extended_data = NULL;
 	struct core_data *next_block;
@@ -822,6 +823,8 @@ static int dump_tar(struct dump_info *di)
 	int fd;
 	int i;
 
+	if (!di->cfg->prog_config.core_in_tar)
+		return -1;
 	if (!di->cfg->prog_config.core_compressor)
 		return -1;
 
@@ -881,7 +884,7 @@ static int dump_tar(struct dump_info *di)
 	snprintf(hdr.checksum, sizeof(hdr.checksum),
 		 "%06o", get_tar_checksum(&hdr));
 
-	fd = open_compressor(di, &path);
+	fd = open_compressor(di, ".tar", &path);
 	if (fd < 0)
 		goto out;
 
@@ -966,6 +969,69 @@ static int dump_tar(struct dump_info *di)
 	/* 2 empty blocks as EOF */
 	if (dump_zero(fd, BLOCK_SIZE * 2) < 0)
 		goto out;
+
+	err = 0;
+
+	di->cfg->prog_config.core_compressed = true;
+
+	info("compressed core tar path: %s", path);
+out:
+	if (fd >= 0)
+		close_compressor(fd);
+	if (path) {
+		if (err)
+			unlink(path);
+		free(path);
+	}
+	free(buf);
+
+	return err;
+}
+
+static int dump_compressed_core(struct dump_info *di)
+{
+	struct core_data *cur;
+	char *path = NULL;
+	off64_t pos = 0;
+	int err = -1;
+	char *buf;
+	int fd;
+
+	if (!di->cfg->prog_config.core_compressor)
+		return -1;
+
+	buf = malloc(PAGESZ);
+	if (!buf)
+		return -1;
+
+	fd = open_compressor(di, "", &path);
+	if (fd < 0)
+		goto out;
+
+	for (cur = di->core_file; cur; cur = cur->next) {
+		if (lseek64(cur->mem_fd, cur->mem_start, SEEK_SET) == -1) {
+			info("lseek di->mem_fd failed at 0x%lx",
+			     cur->mem_start);
+			goto out;
+		}
+
+		if (cur->start < pos) {
+			info("invalid core data ordering");
+			goto out;
+		}
+
+		dump_zero(fd, cur->start - pos);
+
+		if (copy_data(cur->mem_fd, fd, -1,
+			      cur->end - cur->start, buf) < 0) {
+			goto out;
+		}
+
+		pos = cur->end;
+	}
+
+	if (pos < di->core_file_size)
+		dump_zero(fd, di->core_file_size - pos);
 
 	err = 0;
 
@@ -2979,10 +3045,13 @@ int main(int argc, char **argv)
 	/* dump registered application data */
 	dyn_dump(&di);
 
-	/* dump sparse data to tar'd core file */
-	if (dump_tar(&di) != 0) {
-		/* dump sparse data to core file */
-		dump_mini_core(&di);
+	/* dump data to compressed tar'd sparse core file */
+	if (dump_compressed_tar(&di) != 0) {
+		/* dump data to compressed core file */
+		if (dump_compressed_core(&di) != 0) {
+			/* dump data to sparse core file */
+			dump_mini_core(&di);
+		}
 	}
 
 	/* dump a fat core (if configured) */

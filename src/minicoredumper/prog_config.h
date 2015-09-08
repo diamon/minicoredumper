@@ -62,6 +62,7 @@ struct prog_config {
 	struct interesting_buffer *buffers;
 	char *core_compressor;
 	char *core_compressor_ext;
+	bool core_in_tar;
 	bool core_compressed;
 	bool dump_fat_core;
 	bool dump_auxv_so_list;
