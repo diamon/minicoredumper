@@ -17,7 +17,7 @@ Overview
 
       3. minicoredumper_dbusd - a D-Bus service to allow multiple
                                 applications to dump their data if any
-                                of the applications crash
+                                of the applications crash or on demand
 
 License
 -------
@@ -51,12 +51,20 @@ Documentation
       minicoredumper.cfg.json (5)
       minicoredumper.recept.json (5)
       minicoredumper_dbusd (1)
+      minicoredumper_trigger (1)
       coreinject (1)
       mcd_dump_data_register_bin (3)
       mcd_dump_data_register_text (3)
       mcd_dump_data_unregister (3)
       mcd_dump_data_dbus_start (3)
       mcd_dump_data_dbus_stop (3)
+
+Support
+-------
+
+    Bug Tracker: https://bugs.linuxfoundation.org/buglist.cgi?product=Diamon&component=minicoredumper
+
+    Mailing List: https://linutronix.de/mailman/listinfo/minicoredumper
 
 Demo
 ----
