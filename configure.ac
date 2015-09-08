@@ -76,6 +76,12 @@ AC_FUNC_MALLOC
 AC_FUNC_MMAP
 AC_FUNC_STRTOD
 
+dnl Checks for tools.
+AC_CHECK_PROG(PKGCONFIG_CHECK,pkg-config,yes)
+if test x$PKGCONFIG_CHECK != xyes ; then
+	AC_MSG_ERROR([pkg-config missing!])
+fi
+
 dnl default-enabled dbus feature
 AC_ARG_WITH([dbus],
 	    [AS_HELP_STRING([--with-dbus],
