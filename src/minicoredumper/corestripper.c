@@ -37,6 +37,7 @@
 #include <printf.h>
 #include <stddef.h>
 #include <limits.h>
+#include <inttypes.h>
 #include <link.h>
 #include <gelf.h>
 #include <thread_db.h>
@@ -857,10 +858,10 @@ static int dump_tar(struct dump_info *di)
 		if (i < 4) {
 			snprintf(hdr.sparse_map[i].offset,
 				 sizeof(hdr.sparse_map[i].offset),
-				 "%011zo", offset);
+				 "%011" PRIo64, offset);
 			snprintf(hdr.sparse_map[i].numbytes,
 				 sizeof(hdr.sparse_map[i].numbytes),
-				 "%011zo", numbytes);
+				 "%011" PRIo64, numbytes);
 
 			/* save first extended sparse block for later */
 			if (i == 3)
@@ -869,12 +870,12 @@ static int dump_tar(struct dump_info *di)
 		total_bytes += numbytes;
 	}
 
-	snprintf(hdr.numbytes, sizeof(hdr.numbytes), "%011lo", total_bytes);
+	snprintf(hdr.numbytes, sizeof(hdr.numbytes), "%011" PRIo64, total_bytes);
 
 	if (extended_data)
 		hdr.is_extended = 1;
 	snprintf(hdr.filesize, sizeof(hdr.filesize),
-		 "%011zo", di->core_file_size);
+		 "%011" PRIo64, di->core_file_size);
 
 	/* calculate checksum */
 	snprintf(hdr.checksum, sizeof(hdr.checksum),
@@ -902,9 +903,9 @@ static int dump_tar(struct dump_info *di)
 			if (next_block)
 				numbytes = block_roundup(numbytes);
 
-			snprintf(s.offset, sizeof(s.offset), "%011zo", offset);
+			snprintf(s.offset, sizeof(s.offset), "%011" PRIo64, offset);
 			snprintf(s.numbytes, sizeof(s.numbytes),
-				 "%011zo", numbytes);
+				 "%011" PRIo64, numbytes);
 			if (write_file_fd(fd, (char *)&s, sizeof(s)) < 0)
 				goto out;
 			block_bytes_written += sizeof(s);
@@ -995,7 +996,7 @@ static void dump_mini_core(struct dump_info *di)
 
 	/* set core size */
 	if (pwrite(di->core_fd, "", 1, di->core_file_size - 1) != 1)
-		info("failed to set core size: %zu bytes", di->core_file_size);
+		info("failed to set core size: %" PRIu64 " bytes", di->core_file_size);
 
 	for (cur = di->core_file; cur; cur = cur->next) {
 		/* do not dump on ourself */
