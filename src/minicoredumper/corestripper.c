@@ -2714,6 +2714,10 @@ static int init_from_auxv(struct dump_info *di, ElfW(auxv_t) *auxv,
 	if (!dyn_addr)
 		return 4;
 
+	/* Store symbol information in executable.
+	 * This is necessary for sym_address() to work. */
+	store_sym_data(di, di->exe, relocation);
+
 	dyn_addr = dyn_addr + relocation;
 
   	for (i = 0; ; i++) {
