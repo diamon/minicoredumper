@@ -1101,9 +1101,6 @@ static int add_core_data(struct dump_info *di, off64_t dest_offset, size_t len,
 	int done = 0;
 	off64_t end;
 
-	if (len == 0)
-		return 0;
-
 	end = start + len;
 
 	for (cur = di->core_file; cur && !done; cur = cur->next) {
@@ -1179,8 +1176,9 @@ static int add_core_data(struct dump_info *di, off64_t dest_offset, size_t len,
 				continue;
 
 			} else if (cur->next->start == cur->end) {
-				if ((cur->mem_start + (cur->end - cur->start))
-				    == cur->next->mem_start) {
+				if (((cur->mem_start + (cur->end - cur->start))
+				     == cur->next->mem_start) &&
+				    (cur->mem_fd == cur->next->mem_fd)) {
 					/* consolidate adjacent block */
 					tmp = cur->next;
 					cur->end = tmp->end;
@@ -1299,6 +1297,9 @@ again:
 
 	/* make the core big enough to fit all vma areas */
 	di->core_file_size = di->vma_end;
+
+	/* add empty core data to mark the size of the core file */
+	add_core_data(di, di->core_file_size, 0, di->core_fd, 0);
 out:
 	free(buf);
 	return ret;
