@@ -16,8 +16,8 @@ Overview
                              data for dumping
 
       3. minicoredumper_dbusd - a D-Bus service to allow multiple
-                                applications to dump their data if any
-                                of the applications crash or on demand
+                                applications to dump their data on demand
+                                or if any of the applications crash
 
 License
 -------
@@ -27,7 +27,7 @@ License
 Installation
 ------------
 
-    This package uses autotools:
+    The minicoredumper package uses autotools:
 
       $ ./configure
       $ make
@@ -62,27 +62,34 @@ Documentation
 Support
 -------
 
-    Bug Tracker: https://bugs.linuxfoundation.org/buglist.cgi?product=Diamon&component=minicoredumper
+    Website: https://linutronix.de/minicoredumper
 
     Mailing List: https://linutronix.de/mailman/listinfo/minicoredumper
+
+    Bug Tracker: https://bugs.linuxfoundation.org/buglist.cgi?product=Diamon&component=minicoredumper
+
+    Git Repository: http://git.linuxfoundation.org/?p=diamon/minicoredumper.git;a=summary
 
 Demo
 ----
 
     This packages provides an example application to test the
-    minicoredumper. The example application is not build by default.
+    minicoredumper. The example application is not built by default.
     This must be activated with the --with-minicoredumper_demo
     argument for configure.
 
     The example application minicoredumper_demo uses libminicoredumper
-    to register variables and then crashes. This should trigger the
-    minicoredumper. The example also registers with minicoredumper_dbusd
-    via D-Bus. When another application crashes, the example application
-    will respond by dumping its data as well.
+    to register variables. If it is run with no command line arguments,
+    it crashes deliberately, which should trigger the minicoredumper.
+    The example also registers with minicoredumper_dbusd via D-Bus. When
+    another registered application crashes, the example application will
+    respond by dumping its data as well.
 
-    Assuming minicoredumper is installed and activated, D-Bus is
-    installed, and minicoredumper_dbusd is running, the demo can be
-    executed with the following commands:
+    The demo can be performed by running the example program twice. One
+    instance that registers itself, waits, and exits gracefully, and
+    another instance that crashes. Assuming minicoredumper is installed
+    and activated, D-Bus is installed, and minicoredumper_dbusd is
+    running, the demo can be executed with the following commands:
 
       $ minicoredumper_demo 6 & sleep 3 && minicoredumper_demo
 
@@ -92,7 +99,7 @@ Demo
     foreground that will crash immediately.
 
     In the minicoredumper base_dir there should now be a directory
-    containing the dump data from the second (crashed) instance of
-    minicoredumper_demo. In that directory there should also be a
-    subdirectory "dumps-NNN" containing the dump data from the first
-    instance of minicoredumper_demo (that had a graceful exit).
+    containing a core file and the dump data from the second (crashed)
+    instance of minicoredumper_demo. In that directory there should also
+    be a subdirectory "dumps-NNN" containing the dump data from the
+    first instance of minicoredumper_demo (that had a graceful exit).
