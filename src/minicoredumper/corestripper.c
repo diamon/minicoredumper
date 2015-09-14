@@ -873,7 +873,8 @@ static int dump_compressed_tar(struct dump_info *di)
 		total_bytes += numbytes;
 	}
 
-	snprintf(hdr.numbytes, sizeof(hdr.numbytes), "%011" PRIo64, total_bytes);
+	snprintf(hdr.numbytes, sizeof(hdr.numbytes), "%011" PRIo64,
+		 total_bytes);
 
 	if (extended_data)
 		hdr.is_extended = 1;
@@ -906,7 +907,8 @@ static int dump_compressed_tar(struct dump_info *di)
 			if (next_block)
 				numbytes = block_roundup(numbytes);
 
-			snprintf(s.offset, sizeof(s.offset), "%011" PRIo64, offset);
+			snprintf(s.offset, sizeof(s.offset), "%011" PRIo64,
+				 offset);
 			snprintf(s.numbytes, sizeof(s.numbytes),
 				 "%011" PRIo64, numbytes);
 			if (write_file_fd(fd, (char *)&s, sizeof(s)) < 0)
@@ -1061,8 +1063,10 @@ static void dump_mini_core(struct dump_info *di)
 		return;
 
 	/* set core size */
-	if (pwrite(di->core_fd, "", 1, di->core_file_size - 1) != 1)
-		info("failed to set core size: %" PRIu64 " bytes", di->core_file_size);
+	if (pwrite(di->core_fd, "", 1, di->core_file_size - 1) != 1) {
+		info("failed to set core size: %" PRIu64 " bytes",
+		     di->core_file_size);
+	}
 
 	for (cur = di->core_file; cur; cur = cur->next) {
 		/* do not dump on ourself */
