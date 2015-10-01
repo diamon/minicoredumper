@@ -2993,7 +2993,7 @@ int main(int argc, char **argv)
 	openlog("minicoredumper", LOG_NDELAY, LOG_SYSLOG);
 
 	/* prevent memory paging to swap */
-	mlockall(MCL_FUTURE | MCL_FUTURE);
+	mlockall(MCL_CURRENT | MCL_FUTURE);
 
 	if (argc == 8 || argc == 9) {
 		info("argv: %s %s %s %s %s %s %s %s", argv[0], argv[1],
