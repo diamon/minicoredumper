@@ -55,7 +55,7 @@
 #include "corestripper.h"
 
 /* /BASEDIR/IMAGE.TIMESTAMP.PID */
-#define CORE_DIR_FMT "%s/%s.%llu.%i"
+#define CORE_DIR_FMT "%s/%s.%s.%i"
 
 #ifdef USE_DBUS
 extern int start_dbus_gloop(struct dump_info *di, char *app_name);
@@ -231,6 +231,8 @@ static int init_di(struct dump_info *di, char **argv, int argc)
 	char *tmp_path;
 	char *p;
 	int ret;
+	struct tm tm;
+	char timestamp_str[sizeof("YYYYMMDD.HHMMSS+0000")];
 
 	if (elf_version(EV_CURRENT) == EV_NONE) {
 		info("elf_version EV_NONE");
@@ -323,8 +325,20 @@ static int init_di(struct dump_info *di, char **argv, int argc)
 		comm_base = p + 1;
 	}
 
+	/* compute timestamp string */
+	if (localtime_r(&di->timestamp, &tm) == NULL) {
+		info("localtime_r failed");
+		return 1;
+	}
+
+	if (strftime(timestamp_str, sizeof(timestamp_str), "%Y%m%d.%H%M%S%z",
+		     &tm) == 0) {
+		info("strftime failed");
+		return 1;
+	}
+
 	if (asprintf(&tmp_path, CORE_DIR_FMT, di->cfg->base_dir, comm_base,
-		     (unsigned long long)di->timestamp, di->pid) == -1) {
+		     timestamp_str, di->pid) == -1) {
 		return 1;
 	}
 	di->dst_dir = tmp_path;
