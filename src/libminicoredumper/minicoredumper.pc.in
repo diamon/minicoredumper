@@ -13,5 +13,5 @@ includedir=@includedir@
 Name: libminicoredumper
 Description: minicoredumper library
 Version: @VERSION@
-Libs: -L${libdir}
+Libs: -L${libdir} -lminicoredumper
 Cflags: -I${includedir}
