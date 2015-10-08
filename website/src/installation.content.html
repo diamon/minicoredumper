@@ -1,0 +1,73 @@
+<div class="page-header">
+  <h1>Installation</h1>
+</div>
+<div class="row">
+  <div class="col-sm-12">
+    <p>Unpack the release archive and change to source directory:</p>
+    <pre>tar -xzf minicoredumper-x.y.z.tar.gz
+cd minicoredumper-x.y.z</pre>
+  </div>
+</div>
+<br>
+<div class="row">
+  <div class="col-sm-12">
+    <p>The minicoredumper project uses the <a href="http://www.gnu.org/software/automake/manual/html_node/GNU-Build-System.html">GNU Build System</a> to configure, compile, and install its software and documentation. For a default installation, the commands are:</p>
+    <pre>./configure
+make
+sudo make install</pre>
+  </div>
+</div>
+<br>
+<div class="row">
+  <div class="col-sm-12">
+    <p>The minicoredumper program requires a <a href="$ROOT$man/man5/minicoredumper.cfg.json.5.html">configuration file</a> and optionally <a href="$ROOT$man/man5/minicoredumper.recept.json.5.html">recept files</a>. Examples of these files are available in the <samp>etc</samp> directory within the source directory. Although they will certainly need modification, they can be copied to be used as a starting point for the software.</p>
+    <pre>sudo mkdir /etc/minicoredumper
+sudo cp etc/minicoredumper/minicoredumper.cfg.json /etc/minicoredumper/
+sudo cp etc/minicoredumper/*.recept.json /etc/minicoredumper/</pre>
+  </div>
+</div>
+<br>
+<div class="row">
+  <div class="col-sm-12">
+    <p>After modifying the configuration and recept files as needed, the minicoredumper dump utility is ready for use. Now Linux must be directed to to use minicoredumper to handle the creation of core files:</p>
+    <pre>echo '|/usr/bin/minicoredumper %p %u %g %s %t %h %e' | sudo tee /proc/sys/kernel/core_pattern</pre>
+    <p>Note: This is not a persistent setting and must be performed on each system boot.</p>
+  </div>
+</div>
+<br>
+<div class="row">
+  <div class="col-sm-8">
+    <div class="alert alert-success" role="alert">
+      <p><strong>Done!</strong> Now whenever a program crashes, minicoredumper has the responsibility to create the core dump file as specified in the configuration and recept files.</p>
+    </div>
+  </div>
+</div>
+<br>
+<div class="page-header">
+  <h2>D-Bus Support</h2>
+</div>
+<div class="row">
+  <div class="col-sm-12">
+    <div class="panel panel-default">
+      <div class="panel-body">
+        <p>D-Bus is used by minicoredumper to trigger libminicoredumper-based applications to dump their data. If this feature will be used, there are a couple additional steps to complete the installation. If this feature will <em>not</em> be used, it is recommended that D-Bus support is explicitly disabled in minicoredumper. This is achieved by providing <samp>--without-dbus</samp> as a command line argument when running the <samp>configure</samp> script above.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<br>
+<div class="row">
+  <div class="col-sm-12">
+    <p>The permissions for the D-Bus services used by minicoredumper must be configured. This is achieved using a <a href="http://dbus.freedesktop.org/doc/dbus-daemon.1.html#configuration_file">D-Bus configuration file</a>. An example of this file is available in the <samp>etc</samp> directory within the source directory. Although it may need modification, it can be copied to be used as a starting point for the software. After creating/modifying the D-Bus configuration file, the D-Bus system service must be reloaded.</p>
+    <pre>sudo cp etc/dbus-1/system.d/org.ericsson.mcd.conf /etc/dbus-1/system.d/
+sudo systemctl reload dbus.service</pre>
+  </div>
+</div>
+<br>
+<div class="row">
+  <div class="col-sm-12">
+    <p>The minicoredumper D-Bus daemon must be running in order for D-Bus communication between minicoredumper and the libminicoredumper-based applications to function. The example D-Bus configuration file requires the minicoredumper D-Bus daemon to run as root.</p>
+    <pre>sudo minicoredumper_dbusd</pre>
+    <p>Note: The minicoredumper D-Bus daemon must be run on each system boot.</p>
+  </div>
+</div>

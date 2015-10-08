@@ -1,0 +1,17 @@
+<div class="row">
+  <div class="col-md-4">
+    <h2>Dump Utility</h2>
+    <p>The minicoredumper project provides a program that handles the creation of core dump files on Linux. It can produce much smaller core dump files by making use of sparse files, compression, and allowing the user to configure what parts of the process memory image should be dumped.</p>
+    <p><a class="btn btn-default" href="man/man1/minicoredumper.1.html" role="button">View details &raquo;</a></p>
+  </div>
+  <div class="col-md-4">
+    <h2>Library</h2>
+    <p>By using libminicoredumper, an application can register exactly what data should be dumped by minicoredumper. If D-Bus support is enabled, the application can be triggered to dump its registered data while running.</p>
+    <p><a class="btn btn-default" href="man/man7/libminicoredumper.7.html" role="button">View details &raquo;</a></p>
+ </div>
+  <div class="col-md-4">
+    <h2>Live Dumps</h2>
+    <p>The minicoredumper project optionally provides a D-Bus service and tool to trigger libminicoredumper applications to dump their registered data while running. If any of the application should crash, that will also trigger the others to dump their data.</p>
+    <p><a class="btn btn-default" href="man/man1/minicoredumper_dbusd.1.html" role="button">View details &raquo;</a></p>
+ </div>
+</div>

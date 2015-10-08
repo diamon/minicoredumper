@@ -1,0 +1,4 @@
+How can I test if minicoredumper is working?
+<p>Send some process the <samp>SEGV</samp> signal and check if minicoredumper reacted.</p>
+<p>minicoredumper uses syslog to log its activity. The syslog ident is <samp>minicoredumper</samp> and the syslog facility is <samp>LOG_SYSLOG</samp>. Typically this output will land in <samp>/var/log/syslog</samp>.</p>
+<p>After an application core dumps, a new directory containing the generated core file should have been created in the <samp>base_dir</samp> configured in the minicoredumper configuration file.</p>

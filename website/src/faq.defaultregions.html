@@ -1,0 +1,7 @@
+What memory regions does minicoredumper dump by default?
+<p>By default, no sections are dumped in their entirety. Much of the dynamic loader sections are included in order to build the linked library lists. And if enabled, the used portion of stacks are also included. All non-stack application data (whether static data or dynamically allocated data in the heap) must be explicitly specified. This can be done by:</p>
+<ul>
+<li>specifying <samp>maps</samp> in the recept file</li>
+<li>specifying <samp>buffers</samp> in the recept file</li>
+<li>if the application is using libminicoredumper, it can register specific data for dumping with <a href="$ROOT$man/man3/mcd_dump_data_register_bin.3.html">mcd_dump_data_register_bin()</a></li>
+</ul>

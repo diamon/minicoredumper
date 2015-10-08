@@ -1,0 +1,18 @@
+Which features should be enabled so that gdb is satisfied?
+<p>In general, a minimal recept file to satisfy gdb would look like this:</p>
+<pre>
+{
+    "stacks": {
+        "dump_stacks": true
+    },
+    "maps": {
+        "dump_by_name": [
+            "[vdso]"
+        ]
+    },
+    "dump_auxv_so_list": true,
+    "dump_pthread_list": true,
+    "dump_robust_mutex_list": true
+}
+</pre>
+<p>However, depending upon the application and what needs to be inspected, even some of these options may be disabled. See the <a href="$ROOT$man/man5/minicoredumper.recept.json.5.html">recept file man page</a> for details about each of these options.</p>

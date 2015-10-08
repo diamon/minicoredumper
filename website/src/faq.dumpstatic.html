@@ -1,0 +1,3 @@
+How can I prevent static data from being stripped from the core file?
+<p>Using the tool <samp>nm</samp> on the library or executable containing the symbol, it is possible to see the name of the symbol as used by the linker. This name can be specified as one of the <samp>buffers</samp> of a recept file.</p>
+<p>As an alternative, if the application is using libminicoredumper, it can register specific data for dumping with <a href="$ROOT$man/man3/mcd_dump_data_register_bin.3.html">mcd_dump_data_register_bin()</a>. However, this method may not always be appropriate.</p>

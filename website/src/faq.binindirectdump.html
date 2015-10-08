@@ -1,0 +1,2 @@
+When using <samp>mcd_dump_data_register_bin()</samp> with <samp>MCD_DATA_PTR_INDIRECT</samp>, one extra word is dumped at the beginning of the dumped file. What is that?
+<p>For indirect pointers, the first word of the dumped file is pointer data. This is necessary for binary reinjection using the <a href="$ROOT$man/man1/coreinject.1.html">coreinject</a> tool.</p>
