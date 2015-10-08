@@ -327,8 +327,12 @@ static int init_di(struct dump_info *di, char **argv, int argc)
 
 	/* compute timestamp string */
 	if (localtime_r(&di->timestamp, &tm) == NULL) {
-		info("localtime_r failed");
-		return 1;
+		time(&di->timestamp);
+		info("failed to interpret timestamp, falling back to now");
+		if (localtime_r(&di->timestamp, &tm) == NULL) {
+			info("localtime_r failed");
+			return 1;
+		}
 	}
 
 	if (strftime(timestamp_str, sizeof(timestamp_str), "%Y%m%d.%H%M%S%z",
