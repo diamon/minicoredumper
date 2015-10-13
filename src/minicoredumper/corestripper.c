@@ -1929,7 +1929,7 @@ static int print_fmt_token(FILE *ft, struct dump_info *di,
 	case (PA_DOUBLE | PA_FLAG_LONG_DOUBLE):
 		ASPRINTF_CASE(long double *);
 	default:
-		ret = asprintf(&d_str, token);
+		ret = asprintf(&d_str, "%s", token);
 		break;
 	}
 
