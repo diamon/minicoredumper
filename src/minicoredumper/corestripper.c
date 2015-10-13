@@ -3075,7 +3075,7 @@ static int get_so_list(struct dump_info *di)
 			/* dump link_map name (not including terminator since
 			 * sparse core data is already 0) */
 			if (di->cfg->prog_config.dump_auxv_so_list) {
-				dump_vma(di, addr, strlen(l_name), 0,
+				dump_vma(di, addr, strlen(l_name) + 1, 0,
 					 "auxv link_map name (%s)", l_name);
 			}
 
