@@ -24,4 +24,5 @@ minicoredumper_trigger_CFLAGS = -g -Wall -std=c99 -D_GNU_SOURCE $(MCD_WERROR) \
 			-D_LARGEFILE64_SOURCE $(dbus_CFLAGS) \
 			-I$(top_srcdir)/lib \
 			-I$(top_srcdir)/src/api \
+			-I$(top_srcdir)/src/compat \
 			-I$(top_srcdir)/src/libminicoredumper

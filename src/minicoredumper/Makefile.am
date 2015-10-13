@@ -21,7 +21,7 @@ minicoredumper_SOURCES = corestripper.c corestripper.h \
 
 if USE_DBUS
 minicoredumper_SOURCES += dbus_mcd.c
-dbus_CFLAGS += -DUSE_DBUS -I$(top_srcdir)/src/dbus
+dbus_CFLAGS += -DUSE_DBUS -I$(top_srcdir)/src/dbus -I$(top_srcdir)/src/compat
 endif
 
 minicoredumper_LDADD = $(top_builddir)/lib/libjson.a -lelf -lthread_db \

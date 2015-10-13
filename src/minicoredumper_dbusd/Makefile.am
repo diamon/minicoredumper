@@ -20,4 +20,5 @@ dbus_CFLAGS += -I$(top_srcdir)/src/dbus
 
 minicoredumper_dbusd_LDADD = @dbus_LIBS@
 minicoredumper_dbusd_CFLAGS = -g -Wall -std=c99 -D_GNU_SOURCE $(MCD_WERROR) \
+			      -I$(top_srcdir)/src/compat \
 			      $(dbus_CFLAGS)

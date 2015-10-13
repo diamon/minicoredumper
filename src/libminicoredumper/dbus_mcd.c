@@ -26,6 +26,7 @@
 
 #include "common.h"
 #include "dbus_mcd.h"
+#include "compat_mcd.h"
 
 extern int dump_data_walk(char *path, int dump_scope);
 
@@ -117,7 +118,7 @@ void *start_dbus_gloop(void *arg)
 	/* unused */
 	(void)arg;
 
-	g_type_init();
+	g_type_init_compat();
 
 	uuid_generate_time_safe(uuid);
 

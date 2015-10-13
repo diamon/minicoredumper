@@ -32,6 +32,8 @@
 
 #include "common.h"
 
+#include "compat_mcd.h"
+
 #define APPNAME "minicoredumper_dbusd"
 
 typedef enum {
@@ -484,7 +486,7 @@ int main(void)
 	guint result;
 	GError *error = NULL;
 
-	g_type_init();
+	g_type_init_compat();
 
 	mainloop = g_main_loop_new(NULL, FALSE);
 	if (!mainloop) {

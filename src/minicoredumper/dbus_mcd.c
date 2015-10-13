@@ -51,6 +51,9 @@
 #include "corestripper.h"
 #include "dbus_mcd.h"
 
+/* Pull in compatibility layer functions. */
+#include "compat_mcd.h"
+
 /* Define the time out in ms */
 #define TIME_OUT 500
 
@@ -123,7 +126,7 @@ int start_dbus_gloop(void *_di)
 	info("pid        : %i", localstate.pid);
 	info("dump scope : %i", localstate.dump_scope);
 
-	g_type_init();
+	g_type_init_compat();
 
 	mainloop = g_main_loop_new(NULL, FALSE);
 

@@ -23,7 +23,7 @@ libminicoredumper_la_SOURCES = mcd.c dump_data_private.h
 
 if USE_DBUS
 libminicoredumper_la_SOURCES += dbus_mcd.c
-dbus_CFLAGS += -DUSE_DBUS -I$(top_srcdir)/src/dbus
+dbus_CFLAGS += -DUSE_DBUS -I$(top_srcdir)/src/dbus -I$(top_srcdir)/src/compat
 endif
 
 libminicoredumper_la_CFLAGS = -g -Wall -std=c99 -D_GNU_SOURCE $(MCD_WERROR) \

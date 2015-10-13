@@ -49,6 +49,9 @@
    dbus-binding-tool */
 #include "dbus_mcd.h"
 
+/* Pull in compatibility layer functions. */
+#include "compat_mcd.h"
+
 /* Define the time out in ms */
 #define TIME_OUT 5000
 
@@ -112,7 +115,7 @@ int main(int argc, char *argv[])
 	mkdir(argv[1], 01777);
 	chmod(argv[1], 01777);
 
-	g_type_init();
+	g_type_init_compat();
 
 	mainloop = g_main_loop_new(NULL, FALSE);
 
