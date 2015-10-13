@@ -2698,7 +2698,11 @@ ps_err_e ps_pglobal_lookup(struct ps_prochandle *ph, const char *object_name,
 
 static int find_pthreads_cb(const td_thrhandle_t *th, void *cb_data)
 {
-	/* NOP */
+	/* Get thread info, in order to access (and dump) data that
+	   gdb/libthread_db needs.  */
+	td_thrinfo_t thinfo;
+	td_thr_get_info (th, &thinfo);
+
 	return TD_OK;
 }
 
