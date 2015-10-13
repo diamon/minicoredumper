@@ -17,14 +17,14 @@ register text data to be dumped
 .nf
 .BI "int mcd_dump_data_register_text(const char *" ident ,
 .BI "                                unsigned long " dump_scope ,
-.BI "                                mcd_dump_data_t *" saveptr ,
+.BI "                                mcd_dump_data_t *" save_ptr ,
 .BI "                                const char *" fmt ", ...);"
 .fi
 .PP
 .nf
 .BI "int mcd_vdump_data_register_text(const char *" ident ,
 .BI "                                 unsigned long " dump_scope ,
-.BI "                                 mcd_dump_data_t *" saveptr ,
+.BI "                                 mcd_dump_data_t *" save_ptr ,
 .BI "                                 const char *" fmt ,
 .BI "                                 va_list " ap);
 .fi
@@ -48,7 +48,7 @@ The data will only be dumped if a scope value greater than or equal to
 is requested by the
 .BR minicoredumper (1).
 If
-.I saveptr
+.I save_ptr
 is non-NULL, a pointer to the registered dump will be stored there. This
 is needed if
 .BR mcd_dump_data_unregister (3)

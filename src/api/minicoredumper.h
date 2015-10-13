@@ -85,8 +85,8 @@ extern void mcd_dump_data_dbus_stop(void);
  *         dump is appended to previously registered text dumps with the same
  *         @ident.
  * @dump_scope: Define scope witch needs to be dumped
- * @saveptr: If non-NULL, will contain a pointer to the registered data dump,
- *           needed if @mcd_dump_data_unregister will be used.
+ * @save_ptr: If non-NULL, will contain a pointer to the registered data dump,
+ *            needed if @mcd_dump_data_unregister will be used.
  * @fmt: Format string used to print the data.
  * @...: n pointers to interesting data
  *
@@ -94,7 +94,7 @@ extern void mcd_dump_data_dbus_stop(void);
  */
 extern int mcd_dump_data_register_text(const char *ident,
 				       unsigned long dump_scope,
-				       mcd_dump_data_t *saveptr,
+				       mcd_dump_data_t *save_ptr,
 				       const char *fmt, ...);
 
 /*
@@ -107,8 +107,8 @@ extern int mcd_dump_data_register_text(const char *ident,
  *         dump is appended to previously registered text dumps with the same
  *         @ident.
  * @dump_scope: Define scope witch needs to be dumped
- * @saveptr: If non-NULL, will contain a pointer to the registered data dump,
- *           needed if @mcd_dump_data_unregister will be used.
+ * @save_ptr: If non-NULL, will contain a pointer to the registered data dump,
+ *            needed if @mcd_dump_data_unregister will be used.
  * @fmt: Format string used to print the data.
  * @ap: va_list of pointers to interesting data
  *
@@ -116,7 +116,7 @@ extern int mcd_dump_data_register_text(const char *ident,
  */
 extern int mcd_vdump_data_register_text(const char *ident,
 					unsigned long dump_scope,
-					mcd_dump_data_t *saveptr,
+					mcd_dump_data_t *save_ptr,
 					const char *fmt,
 					va_list ap);
 
@@ -128,8 +128,8 @@ extern int mcd_vdump_data_register_text(const char *ident,
  * @ident: A string to identify the binary dump later. Must be unique!
  *         If NULL, data is stored to core file.
  * @dump_scope: Define scope witch needs to be dumped
- * @saveptr: If non-NULL, will contain a pointer to the registered data dump,
- *           needed if @mcd_dump_data_unregister will be used.
+ * @save_ptr: If non-NULL, will contain a pointer to the registered data dump,
+ *            needed if @mcd_dump_data_unregister will be used.
  * @data_ptr: The memory location to read from.
  * @ptr_flags: MCD_DATA_PTR_DIRECT or MCD_DATA_PTR_INDIRECT;
  *             see enum mcd_dump_data_ptr_type
@@ -139,7 +139,7 @@ extern int mcd_vdump_data_register_text(const char *ident,
  */
 extern int mcd_dump_data_register_bin(const char *ident,
 				      unsigned long dump_scope,
-				      mcd_dump_data_t *saveptr,
+				      mcd_dump_data_t *save_ptr,
 				      void *data_ptr,
 				      enum mcd_dump_data_flags ptr_flags,
 				      size_t data_size);

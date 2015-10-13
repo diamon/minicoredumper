@@ -16,7 +16,7 @@ mcd_dump_data_register_bin \- register binary data to be dumped
 .nf
 .BI "int mcd_dump_data_register_bin(const char *" ident ,
 .BI "                               unsigned long " dump_scope ,
-.BI "                               mcd_dump_data_t *" saveptr ,
+.BI "                               mcd_dump_data_t *" save_ptr ,
 .BI "                               void *" data_ptr ,
 .BI "                               enum mcd_dump_data_flags " ptr_flags ,
 .BI "                               size_t " data_size );
@@ -41,7 +41,7 @@ file. The data will only be dumped if a scope value greater than or equal to
 is requested by the
 .BR minicoredumper (1).
 If
-.I saveptr
+.I save_ptr
 is non-NULL, a pointer to the registered dump will be stored there. This
 is needed if
 .BR mcd_dump_data_unregister (3)

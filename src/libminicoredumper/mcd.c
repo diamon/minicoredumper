@@ -310,7 +310,7 @@ out:
 }
 
 int mcd_vdump_data_register_text(const char *ident, unsigned long dump_scope,
-				 mcd_dump_data_t *saveptr,
+				 mcd_dump_data_t *save_ptr,
 				 const char *fmt, va_list ap)
 {
 	struct dump_data_elem *es = NULL;
@@ -372,8 +372,8 @@ int mcd_vdump_data_register_text(const char *ident, unsigned long dump_scope,
 		goto out_err;
 	}
 
-	if (saveptr)
-		*saveptr = dd;
+	if (save_ptr)
+		*save_ptr = dd;
 
 	free(argtypes);
 
@@ -385,21 +385,21 @@ out_err:
 	if (dd)
 		free_dump_data(dd);
 
-	if (saveptr)
-		*saveptr = NULL;
+	if (save_ptr)
+		*save_ptr = NULL;
 
 	return err;
 }
 
 int mcd_dump_data_register_text(const char *ident, unsigned long dump_scope,
-				mcd_dump_data_t *saveptr,
+				mcd_dump_data_t *save_ptr,
 				const char *fmt, ...)
 {
 	va_list ap;
 	int err;
 
 	va_start(ap, fmt);
-	err = mcd_vdump_data_register_text(ident, dump_scope, saveptr,
+	err = mcd_vdump_data_register_text(ident, dump_scope, save_ptr,
 					   fmt, ap);
 	va_end(ap);
 
@@ -407,7 +407,7 @@ int mcd_dump_data_register_text(const char *ident, unsigned long dump_scope,
 }
 
 int mcd_dump_data_register_bin(const char *ident, unsigned long dump_scope,
-			       mcd_dump_data_t *saveptr, void *data_ptr,
+			       mcd_dump_data_t *save_ptr, void *data_ptr,
 			       enum mcd_dump_data_flags ptr_flags,
 			       size_t data_size)
 {
@@ -451,16 +451,16 @@ int mcd_dump_data_register_bin(const char *ident, unsigned long dump_scope,
 		goto out_err;
 	}
 
-	if (saveptr)
-		*saveptr = dd;
+	if (save_ptr)
+		*save_ptr = dd;
 
 	return 0;
 out_err:
 	if (dd)
 		free_dump_data(dd);
 
-	if (saveptr)
-		*saveptr = NULL;
+	if (save_ptr)
+		*save_ptr = NULL;
 
 	return err;
 }
