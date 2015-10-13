@@ -310,7 +310,7 @@ out:
 }
 
 int mcd_vdump_data_register_text(const char *ident, unsigned long dump_scope,
-				 struct mcd_dump_data **saveptr,
+				 mcd_dump_data_t *saveptr,
 				 const char *fmt, va_list ap)
 {
 	struct dump_data_elem *es = NULL;
@@ -392,7 +392,7 @@ out_err:
 }
 
 int mcd_dump_data_register_text(const char *ident, unsigned long dump_scope,
-				struct mcd_dump_data **saveptr,
+				mcd_dump_data_t *saveptr,
 				const char *fmt, ...)
 {
 	va_list ap;
@@ -407,7 +407,7 @@ int mcd_dump_data_register_text(const char *ident, unsigned long dump_scope,
 }
 
 int mcd_dump_data_register_bin(const char *ident, unsigned long dump_scope,
-			       struct mcd_dump_data **saveptr, void *data_ptr,
+			       mcd_dump_data_t *saveptr, void *data_ptr,
 			       enum mcd_dump_data_flags ptr_flags,
 			       size_t data_size)
 {
@@ -465,7 +465,7 @@ out_err:
 	return err;
 }
 
-int mcd_dump_data_unregister(struct mcd_dump_data *dd)
+int mcd_dump_data_unregister(mcd_dump_data_t dd)
 {
 	struct mcd_dump_data *prev = NULL;
 	struct mcd_dump_data *iter;

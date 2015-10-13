@@ -139,7 +139,8 @@ extern int mcd_vdump_data_register_text(const char *ident,
  */
 extern int mcd_dump_data_register_bin(const char *ident,
 				      unsigned long dump_scope,
-				      mcd_dump_data_t *saveptr, void *data_ptr,
+				      mcd_dump_data_t *saveptr,
+				      void *data_ptr,
 				      enum mcd_dump_data_flags ptr_flags,
 				      size_t data_size);
 
@@ -149,7 +150,7 @@ extern int mcd_dump_data_register_bin(const char *ident,
  *
  * Returns 0 upon success, otherwise ENOKEY.
  */
-extern int mcd_dump_data_unregister(struct mcd_dump_data *dd);
+extern int mcd_dump_data_unregister(mcd_dump_data_t dd);
 
 #ifdef __cplusplus
 }
