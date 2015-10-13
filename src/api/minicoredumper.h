@@ -31,6 +31,10 @@
 #include <stdarg.h>
 #include <sys/types.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* opaque data types */
 struct mcd_dump_data;
 typedef struct mcd_dump_data *mcd_dump_data_t;
@@ -50,6 +54,15 @@ enum mcd_dump_data_flags {
 	MCD_LENGTH_DIRECT = 4,
 	MCD_LENGTH_INDIRECT = 8,
 };
+
+#ifdef __cplusplus
+static mcd_dump_data_flags operator|(mcd_dump_data_flags lhs,
+				     mcd_dump_data_flags rhs)
+{
+	return static_cast<mcd_dump_data_flags>(
+	    static_cast<int>(lhs) | static_cast<int>(rhs));
+}
+#endif
 
 /*
  * global_dump_init - Initialize D-Bus connection
@@ -137,5 +150,9 @@ extern int mcd_dump_data_register_bin(const char *ident,
  * Returns 0 upon success, otherwise ENOKEY.
  */
 extern int mcd_dump_data_unregister(struct mcd_dump_data *dd);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __MINICOREDUMPER_H__ */
