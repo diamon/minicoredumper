@@ -2767,11 +2767,10 @@ static int init_from_auxv(struct dump_info *di, ElfW(auxv_t) *auxv,
 		       offsetof(ElfW(Phdr), p_type);
 		read_remote(di, addr, &val32, sizeof(val32));
 
-		/* dump auxv phdr type to core */
-		if (di->cfg->prog_config.dump_auxv_so_list)
-			dump_vma(di, addr, sizeof(val32), 0, "auxv phdr type");
+		if (val32 == PT_NULL) {
+			break;
 
-		if (val32 == PT_PHDR) {
+		} else if (val32 == PT_PHDR) {
 			addr = phdr_addr + (sizeof(ElfW(Phdr)) * i) +
 			       offsetof(ElfW(Phdr), p_vaddr);
 			read_remote(di, addr, &relocation, sizeof(relocation));
@@ -2797,9 +2796,13 @@ static int init_from_auxv(struct dump_info *di, ElfW(auxv_t) *auxv,
 				dump_vma(di, addr, sizeof(dyn_addr), 0,
 					 "auxv dynamic");
 			}
-
-			break;
 		}
+	}
+
+	/* dump auxv phdrs to core */
+	if (di->cfg->prog_config.dump_auxv_so_list) {
+		dump_vma(di, phdr_addr, sizeof(ElfW(Phdr)) * i, 0,
+			 "auxv phdrs");
 	}
 
 	if (found != 0x3)
@@ -2820,12 +2823,6 @@ static int init_from_auxv(struct dump_info *di, ElfW(auxv_t) *auxv,
 		       + offsetof(ElfW(Dyn), d_tag);
 		read_remote(di, addr, &val32, sizeof(val32));
 
-		/* dump auxv dtag to core */
-		if (di->cfg->prog_config.dump_auxv_so_list) {
-			dump_vma(di, addr, sizeof(val32), 0,
-				 "auxv dtag");
-		}
-
 		if (val32 == DT_NULL) {
 			break;
 
@@ -2842,11 +2839,18 @@ static int init_from_auxv(struct dump_info *di, ElfW(auxv_t) *auxv,
 			}
 
 			/* found it! */
-			return 0;
+			found |= 0x4;
 		}
 	}
 
-	return 5;
+	/* dump auxv dyns to core */
+	if (di->cfg->prog_config.dump_auxv_so_list)
+		dump_vma(di, dyn_addr, sizeof(ElfW(Dyn)) * i, 0, "auxv dyns");
+
+	if (found != 0x7)
+		return 5;
+
+	return 0;
 }
 
 /* Get the shared libary list via /proc/pid/auxv */
