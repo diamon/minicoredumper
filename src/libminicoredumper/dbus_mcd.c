@@ -90,13 +90,6 @@ static void app_signal_hangler(DBusGProxy * proxy, const char *signalName,
 	}
 }
 
-/**
- * atexit function: register from dbus daemon
- */
-void end()
-{
-}
-
 static GMainLoop *mainloop;
 
 /**
@@ -163,8 +156,6 @@ void *start_dbus_gloop(void *arg)
 	else
 		g_print("APP: Application registered with %s \n", ai.uuid);
 	g_clear_error(&error);
-
-	atexit(end);
 
 	g_main_loop_run(mainloop);
 
