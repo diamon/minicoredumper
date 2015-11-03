@@ -8,7 +8,7 @@
 ###############################################################################
 
 AC_PREREQ(2.5)
-AC_INIT(minicoredumper, 1.0.0, john.ogness@linutronix.de)
+AC_INIT(minicoredumper, 1.0.1, john.ogness@linutronix.de)
 AC_CONFIG_MACRO_DIR(m4)
 AM_INIT_AUTOMAKE
 
@@ -160,6 +160,7 @@ AC_OUTPUT([Makefile
 	   src/Makefile
 	   src/api/Makefile
 	   src/dbus/Makefile
+	   src/compat/Makefile
 	   src/coreinject/Makefile
 	   src/libminicoredumper/Makefile
 	   src/libminicoredumper/minicoredumper-uninstalled.pc

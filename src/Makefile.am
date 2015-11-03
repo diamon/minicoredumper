@@ -5,7 +5,7 @@
 ## You can do whatever you want with this file.
 ##
 
-SUBDIRS = api dbus
+SUBDIRS = api dbus compat
 
 if COND_COREINJECT
 SUBDIRS += coreinject
