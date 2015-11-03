@@ -1,0 +1,2 @@
+Does minicoredumper respect resource limits (<samp>ulimit -c</samp>)?
+<p>No. If minicoredumper is being used as the core dump facility, the resource limits regarding core file size are ignored. It is not possible to enforce core size limits with minicoredumper. It is recommended that a fixed size filesystem is used as the <samp>base_dir</samp> for dumps.</p>

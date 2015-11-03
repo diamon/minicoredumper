@@ -5,7 +5,7 @@
 .\" This file has been put into the public domain.
 .\" You can do whatever you want with this file.
 .\"
-.TH MINICOREDUMPER.CFG.JSON 5 "2015-05-31" "Ericsson" "minicoredumper"
+.TH MINICOREDUMPER.CFG.JSON 5 "2015-11-03" "Ericsson" "minicoredumper"
 .
 .SH NAME
 minicoredumper.cfg.json \- the main configuration file for
@@ -91,7 +91,7 @@ and
 have a "logical AND" relationship. A "logical OR" behavior can be
 achieved by specifying one condition with only
 .I exe
-and another watch with only
+and another condition with only
 .IR comm .
 .
 .SH NOTES
@@ -143,7 +143,7 @@ and the user runs "example_app" and it crashes, the newly created files
 could be found here:
 .br
 .RS
-/tmp/example_app.1412893730.15143
+/tmp/example_app.20151103.114054+0100.15143
 .RE
 .PP
 The example above contains 4 conditions that will be checked in order.
@@ -167,11 +167,14 @@ the built-in
 .BR minicoredumper (1)
 defaults.
 .PP
-The fourth watch will match everything. It will use the recept file:
+The fourth condition will match everything. It will use the recept file:
 .br
 .RS
 /etc/minicoredumper/generic.recept.json
 .RE
+.PP
+In the example where the user runs "example_app", the first condition will
+match since example_app is a symbolic link to /opt/my_apps/bin/my_example_app.
 .PP
 A minimal (yet still useful) configuration file could look like this:
 .PP

@@ -5,7 +5,7 @@
 .\" This file has been put into the public domain.
 .\" You can do whatever you want with this file.
 .\"
-.TH MCD_DUMP_DATA_REGISTER_TEXT 3 "2015-05-31" "Ericsson" "minicoredumper"
+.TH MCD_DUMP_DATA_REGISTER_TEXT 3 "2015-11-03" "Ericsson" "minicoredumper"
 .
 .SH NAME
 mcd_dump_data_register_text, mcd_vdump_data_register_text \-
@@ -54,7 +54,9 @@ is needed if
 .BR mcd_dump_data_unregister (3)
 will be used.
 .I fmt
-is a printf format string used to print the text data to a dump file.
+is a
+.BR printf (3)
+format string used to print the text data to a dump file.
 The remaining arguments are pointer arguments specified by
 .IR fmt .
 Each pointer argument must be of a type that is appropriate for the

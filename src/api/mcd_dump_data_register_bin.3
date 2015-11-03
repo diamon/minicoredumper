@@ -5,7 +5,7 @@
 .\" This file has been put into the public domain.
 .\" You can do whatever you want with this file.
 .\"
-.TH MCD_DUMP_DATA_REGISTER_BIN 3 "2015-05-31" "Ericsson" "minicoredumper"
+.TH MCD_DUMP_DATA_REGISTER_BIN 3 "2015-11-03" "Ericsson" "minicoredumper"
 .
 .SH NAME
 mcd_dump_data_register_bin \- register binary data to be dumped
@@ -35,7 +35,7 @@ unique! If
 .I ident
 is NULL, the data will only dumped if this is the crashing application,
 in which case the data will be explicitly stored in the
-.I core
+.BR core (5)
 file. The data will only be dumped if a scope value greater than or equal to
 .I dump_scope
 is requested by the

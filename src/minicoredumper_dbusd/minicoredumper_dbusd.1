@@ -5,12 +5,11 @@
 .\" This file has been put into the public domain.
 .\" You can do whatever you want with this file.
 .\"
-.TH MINICOREDUMPER_DBUSD 1 "2015-05-31" "Ericsson" "minicoredumper"
+.TH MINICOREDUMPER_DBUSD 1 "2015-11-03" "Ericsson" "minicoredumper"
 .
 .SH NAME
-minicoredumper_dbusd \- a D-Bus daemon to provide communication between
-.BR minicoredumper (1)
-and applications using
+minicoredumper_dbusd \- a D-Bus daemon to facilitate communication for
+applications using
 .BR libminicoredumper (7).
 .
 .SH SYNOPSIS
@@ -33,6 +32,7 @@ uses "org.ericsson.mcd" for both the D-Bus service name and service interface.
 .SH "SEE ALSO"
 .BR minicoredumper (1),
 .BR libminicoredumper (7),
+.BR minicoredumper_trigger (1),
 .BR minicoredumper.cfg.json (5),
 .BR mcd_dump_data_dbus_start (3)
 .PP

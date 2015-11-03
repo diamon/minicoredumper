@@ -5,7 +5,7 @@
 .\" This file has been put into the public domain.
 .\" You can do whatever you want with this file.
 .\"
-.TH MINICOREDUMPER.RECEPT.JSON 5 "2015-08-11" "Ericsson" "minicoredumper"
+.TH MINICOREDUMPER.RECEPT.JSON 5 "2015-11-03" "Ericsson" "minicoredumper"
 .
 .SH NAME
 minicoredumper.recept.json \- a recept file used by the
@@ -63,7 +63,7 @@ to identify and iterate through all the threads.
 .B dump_robust_mutex_list
 (boolean) Whether the list of robust mutexes should be dumped. This is used by
 .BR gdb (1)
-to identify mutex states.
+to identify mutex attributes and states in shared memory.
 .TP
 .B dump_scope
 (integer) Only registered dumps at or below this value will be dumped.
@@ -81,8 +81,9 @@ dump directory.
 (boolean) Whether
 .BR minicoredumper (1)
 messages should be logged to "debug.txt" in the dump directory. This is
-really only useful for debugging
-.BR minicoredumper (1).
+particularly useful if
+.BR syslog (3)
+is not available on the system.
 .TP
 .B dump_fat_core
 (boolean) Whether all virtual memory areas should be dumped.
@@ -123,7 +124,7 @@ option, the bottommost part of the used stack is dumped (i.e. the part of the st
 .SH MAPS
 The
 .I maps
-option specifies a set of options identify shared objects, whose virtual
+option specifies a set of options for shared objects, whose virtual
 memory areas should also be dumped. This is useful if the shared objects
 maintain their own static off-stack data that will be required during
 debugging. The options are:
@@ -154,7 +155,7 @@ each specified buffer are:
 .RS
 .TP
 .B symname
-(string) The name of the global variable.
+(string) The name of the global variable/symbol.
 .TP
 .B follow_ptr
 (boolean) Whether the global variable is a pointer and the data pointed
@@ -203,7 +204,7 @@ file should be packed as a sparse file into a
 .BR tar (1)
 archive before being compressed. This preserves the sparse properties of the
 .BR core (5)
-file. A
+file. If enabled, a
 .I compressor
 must be specified.
 .
