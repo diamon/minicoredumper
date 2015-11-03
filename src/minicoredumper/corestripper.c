@@ -2348,10 +2348,11 @@ static void dump_fat_core(struct dump_info *di)
 
 static int copy_file(const char *dest, const char *src)
 {
+	unsigned char c;
 	struct stat sb;
-	char line[128];
 	FILE *f_dest;
 	FILE *f_src;
+	int i;
 
 	if (stat(src, &sb) != 0)
 		return -1;
@@ -2370,8 +2371,15 @@ static int copy_file(const char *dest, const char *src)
 		return -1;
 	}
 
-	while (fgets(line, sizeof(line), f_src))
-		fwrite(line, strlen(line), 1, f_dest);
+	while (1) {
+		i = fgetc(f_src);
+		if (i == EOF)
+			break;
+
+		c = (unsigned char)i;
+
+		fwrite(&c, 1, 1, f_dest);
+	}
 
 	fclose(f_src);
 	fclose(f_dest);
