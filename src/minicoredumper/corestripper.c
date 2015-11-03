@@ -66,6 +66,7 @@ static int start_dbus_gloop(struct dump_info *di, char *app_name)
 }
 #endif
 
+static struct dump_info *global_di;
 static long PAGESZ;
 
 void info(const char *fmt, ...)
@@ -75,6 +76,14 @@ void info(const char *fmt, ...)
 	va_start(ap, fmt);
 	vsyslog(LOG_ERR | LOG_USER, fmt, ap);
 	va_end(ap);
+
+	if (global_di->info_file) {
+		va_start(ap, fmt);
+		vfprintf(global_di->info_file, fmt, ap);
+		va_end(ap);
+		fprintf(global_di->info_file, "\n");
+		fflush(global_di->info_file);
+	}
 }
 
 void fatal(const char *fmt, ...)
@@ -88,6 +97,15 @@ void fatal(const char *fmt, ...)
 	va_start(ap, fmt);
 	vsyslog(LOG_ERR | LOG_USER, msg, ap);
 	va_end(ap);
+
+	if (global_di->info_file) {
+		va_start(ap, fmt);
+		vfprintf(global_di->info_file, msg, ap);
+		va_end(ap);
+		fprintf(global_di->info_file, "\n");
+		fflush(global_di->info_file);
+	}
+
 	exit(1);
 }
 
@@ -239,7 +257,6 @@ static int init_di(struct dump_info *di, char **argv, int argc)
 		return 1;
 	}
 
-	memset(di, 0, sizeof(*di));
 	di->mem_fd = -1;
 	di->core_fd = -1;
 	di->fatcore_fd = -1;
@@ -3017,6 +3034,9 @@ int main(int argc, char **argv)
 	struct dump_info di;
 	int ret;
 
+	memset(&di, 0, sizeof(di));
+	global_di = &di;
+
 	/* determine page size */
 	PAGESZ = sysconf(_SC_PAGESIZE);
 
@@ -3107,17 +3127,18 @@ int main(int argc, char **argv)
 		close(di.fatcore_fd);
 	if (di.mem_fd >= 0)
 		close(di.mem_fd);
-	if (di.info_file)
-		fclose(di.info_file);
 
 	if (di.cfg->prog_config.core_compressed)
 		unlink(di.core_path);
 
-	closelog();
-
 	/* notify registered apps (if configured) */
 	if (di.cfg->prog_config.live_dumper)
 		start_dbus_gloop(&di,argv[0]);
+
+	/* close log streams */
+	if (di.info_file)
+		fclose(di.info_file);
+	closelog();
 
 	munlockall();
 
