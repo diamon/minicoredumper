@@ -117,6 +117,72 @@ out:
 #undef ASPRINTF_CASE
 }
 
+static int copy_file(const char *dest, const char *src)
+{
+	unsigned char c;
+	struct stat sb;
+	FILE *f_dest;
+	FILE *f_src;
+	int i;
+
+	if (stat(src, &sb) != 0)
+		return -1;
+
+	/* non-regular files ignored */
+	if ((sb.st_mode & S_IFMT) != S_IFREG)
+		return -1;
+
+	f_src = fopen(src, "r");
+	if (!f_src)
+		return -1;
+
+	f_dest = fopen(dest, "w");
+	if (!f_dest) {
+		fclose(f_src);
+		return -1;
+	}
+
+	while (1) {
+		i = fgetc(f_src);
+		if (i == EOF)
+			break;
+
+		c = (unsigned char)i;
+
+		fwrite(&c, 1, 1, f_dest);
+	}
+
+	fclose(f_src);
+	fclose(f_dest);
+
+	return 0;
+}
+
+static void dump_proc(char *path, int pid)
+{
+	char *tmp_path;
+	size_t size;
+
+	size = strlen(path) + 64;
+
+	tmp_path = malloc(size);
+	if (!tmp_path)
+		return;
+
+	snprintf(tmp_path, size, "%s/proc/%i", path, pid);
+
+	if (mkdir(tmp_path, 0700) == -1)
+		goto out;
+
+	snprintf(tmp_path, size, "%s/proc/%i/cmdline", path, pid);
+	copy_file(tmp_path, "/proc/self/cmdline");
+
+	snprintf(tmp_path, size, "%s/proc/%i/environ", path, pid);
+	copy_file(tmp_path, "/proc/self/environ");
+out:
+	free(tmp_path);
+}
+
 int dump_data_walk(char *path, unsigned long dump_scope)
 {
 	struct mcd_dump_data *iter;
@@ -135,11 +201,15 @@ int dump_data_walk(char *path, unsigned long dump_scope)
 
 	pid = getpid();
 
+	dump_proc(path, pid);
+
 	if (asprintf(&tmp_path, "%s/dumps-%i/", path, pid) == -1)
 		return errno;
 
-	if (mkdir(tmp_path, 0700) == -1)
+	if (mkdir(tmp_path, 0700) == -1) {
+		free(tmp_path);
 		return errno;
+	}
 
 	pthread_mutex_lock(&dump_mutex);
 
