@@ -100,9 +100,10 @@ static int usage(const char *argv0, const char *msg)
  */
 int main(int argc, char *argv[])
 {
-	DBusGConnection *bus;
 	DBusGProxy *remoteValue;
+	DBusGConnection *bus;
 	GError *error = NULL;
+	char *tmp_path;
 
 	if (argc != 3)
 		return usage(argv[0], "wrong number of arguments");
@@ -114,6 +115,12 @@ int main(int argc, char *argv[])
 
 	mkdir(argv[1], 01777);
 	chmod(argv[1], 01777);
+
+	if (asprintf(&tmp_path, "%s/proc", argv[1]) != -1) {
+		mkdir(tmp_path, 01777);
+		chmod(tmp_path, 01777);
+		free(tmp_path);
+	}
 
 	g_type_init_compat();
 
