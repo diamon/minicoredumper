@@ -2801,12 +2801,6 @@ static int init_from_auxv(struct dump_info *di, ElfW(auxv_t) *auxv,
 			read_remote(di, addr, &relocation, sizeof(relocation));
 			found |= 0x1;
 
-			/* dump auxv relocation to core */
-			if (di->cfg->prog_config.dump_auxv_so_list) {
-				dump_vma(di, addr, sizeof(relocation), 0,
-					 "auxv relocation");
-			}
-
 			relocation = phdr_addr - relocation;
 
 		} else if (val32 == PT_DYNAMIC) {
@@ -2815,12 +2809,6 @@ static int init_from_auxv(struct dump_info *di, ElfW(auxv_t) *auxv,
 			       offsetof(ElfW(Phdr), p_vaddr);
 			read_remote(di, addr, &dyn_addr, sizeof(dyn_addr));
 			found |= 0x2;
-
-			/* dump auxv dynamic to core */
-			if (di->cfg->prog_config.dump_auxv_so_list) {
-				dump_vma(di, addr, sizeof(dyn_addr), 0,
-					 "auxv dynamic");
-			}
 		}
 	}
 
@@ -2856,12 +2844,6 @@ static int init_from_auxv(struct dump_info *di, ElfW(auxv_t) *auxv,
 			addr = dyn_addr + (sizeof(ElfW(Dyn)) * i) +
 			       offsetof(ElfW(Dyn), d_un.d_ptr);
 			read_remote(di, addr, debug_ptr, sizeof(*debug_ptr));
-
-			/* dump auxv debug ptr to core */
-			if (di->cfg->prog_config.dump_auxv_so_list) {
-				dump_vma(di, addr, sizeof(*debug_ptr), 0,
-					 "auxv debug ptr");
-			}
 
 			/* found it! */
 			found |= 0x4;
