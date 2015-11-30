@@ -43,4 +43,4 @@ include_HEADERS = $(top_srcdir)/src/api/minicoredumper.h
 #    then increment age.
 # 4) If any interfaces have been removed or changed since the last public
 #    release, then set age to 0.
-libminicoredumper_la_LDFLAGS += -version-info 1:1:0
+libminicoredumper_la_LDFLAGS += -version-info 1:2:0

@@ -51,7 +51,7 @@ sudo cp etc/minicoredumper/*.recept.json /etc/minicoredumper/</pre>
     <div class="panel panel-default">
       <div class="panel-body">
         <p>D-Bus can be used by minicoredumper to trigger libminicoredumper-based applications to dump their data. If this feature will be used with D-Bus, there are a couple additional steps to complete the installation. Otherwise, it is recommended that D-Bus support is explicitly disabled in minicoredumper by providing <samp>--without-dbus</samp> as a command line argument when running the <samp>configure</samp> script above.</p>
-        <p>Note: If D-Bus support is disabled, the trigger functionality is still available using a fallback mechanism based on inotify.</p>
+        <p>Note: If D-Bus support is disabled, the trigger functionality is still available using a fallback mechanism based on inotify (see below).</p>
       </div>
     </div>
   </div>

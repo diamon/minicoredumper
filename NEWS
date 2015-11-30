@@ -2,6 +2,19 @@
 minicoredumper Release Notes
 ============================
 
+1.0.2 (2015-11-30)
+
+    * Add inotify-based notification method.
+
+    * Known problems:
+
+        - broken for 32-bit applications using more than 2GB memory
+
+        - unable to dump libraries if they are linked using relative paths
+
+        - minicoredumper_dbusd does not know if registered applications
+          exit without unregistering
+
 1.0.1 (2015-11-03)
 
     * Change dump base template to more human-friendly format.

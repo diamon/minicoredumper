@@ -8,7 +8,7 @@
 ###############################################################################
 
 AC_PREREQ(2.5)
-AC_INIT(minicoredumper, 1.0.1, john.ogness@linutronix.de)
+AC_INIT(minicoredumper, 1.0.2, john.ogness@linutronix.de)
 AC_CONFIG_MACRO_DIR(m4)
 AM_INIT_AUTOMAKE
 
