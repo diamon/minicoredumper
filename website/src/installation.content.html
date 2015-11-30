@@ -50,7 +50,8 @@ sudo cp etc/minicoredumper/*.recept.json /etc/minicoredumper/</pre>
   <div class="col-sm-12">
     <div class="panel panel-default">
       <div class="panel-body">
-        <p>D-Bus is used by minicoredumper to trigger libminicoredumper-based applications to dump their data. If this feature will be used, there are a couple additional steps to complete the installation. If this feature will <em>not</em> be used, it is recommended that D-Bus support is explicitly disabled in minicoredumper. This is achieved by providing <samp>--without-dbus</samp> as a command line argument when running the <samp>configure</samp> script above.</p>
+        <p>D-Bus can be used by minicoredumper to trigger libminicoredumper-based applications to dump their data. If this feature will be used with D-Bus, there are a couple additional steps to complete the installation. Otherwise, it is recommended that D-Bus support is explicitly disabled in minicoredumper by providing <samp>--without-dbus</samp> as a command line argument when running the <samp>configure</samp> script above.</p>
+        <p>Note: If D-Bus support is disabled, the trigger functionality is still available using a fallback mechanism based on inotify.</p>
       </div>
     </div>
   </div>
@@ -67,7 +68,48 @@ sudo systemctl reload dbus.service</pre>
 <div class="row">
   <div class="col-sm-12">
     <p>The minicoredumper D-Bus daemon must be running in order for D-Bus communication between minicoredumper and the libminicoredumper-based applications to function. The example D-Bus configuration file requires the minicoredumper D-Bus daemon to run as root.</p>
-    <pre>sudo minicoredumper_dbusd</pre>
+    <pre>sudo /usr/local/bin/minicoredumper_dbusd</pre>
     <p>Note: The minicoredumper D-Bus daemon must be run on each system boot.</p>
+  </div>
+</div>
+<br>
+<div class="page-header">
+  <h2>Inotify Support</h2>
+</div>
+<div class="row">
+  <div class="col-sm-12">
+    <div class="panel panel-default">
+      <div class="panel-body">
+        <p>If D-Bus support is disabled, the various components of the minicoredumper project will enable support for a fallback trigger mechanism based on inotify. This method is invoked by defining an environment variable <samp>MINICOREDUMPER_MONITOR</samp> specifying an absolute path to a file that will be used to generate the trigger events. The location and name of this file is not important. However, if this method will be used it is necessary that all components involved (minicoredumper, minicoredumper_trigger, libminicoredumper-based applications) define and use the same value of this environment variable. For this method to work, the triggering applications will need write access to the directory containing the trigger file and the libminicoredumper-based applications will need read access to the directory containing the trigger file.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<br>
+<div class="row">
+  <div class="col-sm-12">
+    <p>Create a secure place to store the trigger file. Any user with write access to the directory will be able to trigger dumps.</p>
+    <pre>sudo mkdir -m 0755 /var/minicoredumper</pre>
+  </div>
+</div>
+<br>
+<div class="row">
+  <div class="col-sm-12">
+    <p>Linux must launch the minicoredumper with the inotify variable defined.</p>
+    <pre>echo '|/usr/bin/env MINICOREDUMPER_MONITOR=/var/minicoredumper/trigger /usr/local/bin/minicoredumper %p %u %g %s %t %h %e' | sudo tee /proc/sys/kernel/core_pattern</pre>
+  </div>
+</div>
+<br>
+<div class="row">
+  <div class="col-sm-12">
+    <p>Applications based on libminicoredumper must also define the the inotify variable. This can be done progmatically within the application or externally using env.</p>
+    <pre>/usr/bin/env MINICOREDUMPER_MONITOR=/var/minicoredumper/trigger /usr/local/bin/my_example_app</pre>
+  </div>
+</div>
+<br>
+<div class="row">
+  <div class="col-sm-12">
+    <p>The inotify variable must be defined for the minicoredumper_trigger tool as well.</p>
+    <pre>sudo /usr/bin/env MINICOREDUMPER_MONITOR=/var/minicoredumper/trigger /usr/local/bin/minicoredumper_trigger /tmp/dump 8</pre>
   </div>
 </div>

@@ -31,6 +31,8 @@
 
 #define DUMP_DATA_VERSION 1
 
+#define DUMP_DATA_MONITOR_ENV "MINICOREDUMPER_MONITOR"
+
 enum dump_type {
 	MCD_BIN = 0,
 	MCD_TEXT = 1,

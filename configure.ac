@@ -128,7 +128,7 @@ AS_CASE(["$with_minicoredumper_trigger"],
 	[yes], [WANT_MINICOREDUMPER_TRIGGER=1],
 	[no], [WANT_MINICOREDUMPER_TRIGGER=0],
 	[WANT_MINICOREDUMPER_TRIGGER=1])
-AM_CONDITIONAL([COND_MINICOREDUMPER_TRIGGER], [test "$WANT_MINICOREDUMPER_TRIGGER" -eq 1 -a "x$with_dbus" = "xyes" -o "$HAVE_DBUS" -eq 1])
+AM_CONDITIONAL([COND_MINICOREDUMPER_TRIGGER], [test "$WANT_MINICOREDUMPER_TRIGGER" -eq 1])
 
 AC_ARG_WITH([libminicoredumper],
 	    [AS_HELP_STRING([--without-libminicoredumper],

@@ -109,18 +109,6 @@ out:
 	return err;
 }
 
-static void strip_endline(char *str)
-{
-	char *p;
-
-	p = strchr(str, '\r');
-	if (p)
-		*p = 0;
-	p = strchr(str, '\n');
-	if (p)
-		*p = 0;
-}
-
 static int get_symbol_data(const char *symname, FILE *f_symbol,
 			   struct symbol_data *direct,
 			   struct symbol_data *indirect)
@@ -145,7 +133,10 @@ static int get_symbol_data(const char *symname, FILE *f_symbol,
 	rewind(f_symbol);
 
 	while (fgets(line, sizeof(line), f_symbol)) {
-		strip_endline(line);
+		/* strip newline */
+		p = strchr(line, '\n');
+		if (p)
+			*p = 0;
 
 		/* ignore invalid lines */
 		if (sscanf(line, "%lx %zx %c ", &offset, &size, &type) != 3)

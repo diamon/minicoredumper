@@ -6,12 +6,12 @@
   </div>
   <div class="col-md-4">
     <h2>Library</h2>
-    <p>By using libminicoredumper, an application can register exactly what data should be dumped by minicoredumper. If D-Bus support is enabled, the application can be triggered to dump its registered data while running.</p>
+    <p>By using libminicoredumper, an application can register exactly what data should be dumped by minicoredumper. This data will not only be dumped in case of a crash, but also can be triggered to dump during runtime.</p>
     <p><a class="btn btn-default" href="man/man7/libminicoredumper.7.html" role="button">View details &raquo;</a></p>
  </div>
   <div class="col-md-4">
     <h2>Live Dumps</h2>
-    <p>The minicoredumper project optionally provides a D-Bus service and tool to trigger libminicoredumper applications to dump their registered data while running. If any of the applications should crash, that will trigger the others to dump their data as well.</p>
-    <p><a class="btn btn-default" href="man/man1/minicoredumper_dbusd.1.html" role="button">View details &raquo;</a></p>
+    <p>The minicoredumper project provides a tool to trigger libminicoredumper-based applications to dump their registered data while running. If any of the applications should crash, minicoredumper will trigger the others to dump their data as well.</p>
+    <p><a class="btn btn-default" href="man/man1/minicoredumper_trigger.1.html" role="button">View details &raquo;</a></p>
  </div>
 </div>

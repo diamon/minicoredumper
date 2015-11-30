@@ -57,14 +57,7 @@
 /* /BASEDIR/IMAGE.TIMESTAMP.PID */
 #define CORE_DIR_FMT "%s/%s.%s.%i"
 
-#ifdef USE_DBUS
 extern int start_dbus_gloop(struct dump_info *di, char *app_name);
-#else
-static int start_dbus_gloop(struct dump_info *di, char *app_name)
-{
-	return 0;
-}
-#endif
 
 static struct dump_info *global_di;
 static long PAGESZ;
@@ -107,6 +100,79 @@ void fatal(const char *fmt, ...)
 	}
 
 	exit(1);
+}
+
+static int trigger_live_dump(struct dump_info *di, char *app_name)
+{
+#ifdef USE_DBUS
+	return start_dbus_gloop(di, app_name);
+#else
+	const char *monitor_fname;
+	char *tmp_path;
+	int err = -1;
+	FILE *f;
+	int fd;
+
+	info("Corestripper live dumper (inotify)");
+	info("dump path    : %s", di->dst_dir);
+	info("dump scope   : %d", di->cfg->prog_config.dump_scope);
+
+	monitor_fname = getenv(DUMP_DATA_MONITOR_ENV);
+	if (!monitor_fname || monitor_fname[0] != '/') {
+		info("%s not defined, not triggering live dump",
+		     DUMP_DATA_MONITOR_ENV);
+		return -1;
+	}
+
+	info("dump trigger : %s", monitor_fname);
+
+	if (asprintf(&tmp_path, "%s/monitor.XXXXXX", di->dst_dir) == -1) {
+		info("error: failed to allocate temp string");
+		return -1;
+	}
+
+	fd = mkstemp(tmp_path);
+	if (fd < 0) {
+		info("error: failed to create temp file");
+		goto out;
+	}
+
+	f = fdopen(fd, "w");
+	if (!f) {
+		info("error: failed to reopen temp file");
+		close(fd);
+		goto out;
+	}
+
+	fprintf(f, "version=%d\n", DUMP_DATA_VERSION);
+	fprintf(f, "scope=%d\n", di->cfg->prog_config.dump_scope);
+	fprintf(f, "path=%s\n", di->dst_dir);
+
+	fclose(f);
+
+	chmod(tmp_path, 0644);
+
+	if (rename(tmp_path, monitor_fname) != 0) {
+		info("error: failed to rename %s to %s", tmp_path,
+		     monitor_fname);
+		unlink(tmp_path);
+		goto out;
+	}
+
+	f = fopen(monitor_fname, "a");
+	if (!f) {
+		info("error: failed to append to %s", monitor_fname);
+		goto out;
+	}
+
+	/* inotify trigger */
+	fclose(f);
+
+	err = 0;
+out:
+	free(tmp_path);
+	return err;
+#endif
 }
 
 static ssize_t read_file_fd(int fd, char *dst, int len)
@@ -1781,11 +1847,8 @@ static int dump_maps(struct dump_info *di)
 		/* capture library name */
 		lib = p;
 
-		/* truncate endline */
-		p = strchr(lib, 13);
-		if (p)
-			*p = 0;
-		p = strchr(lib, 10);
+		/* strip newline */
+		p = strchr(lib, '\n');
 		if (p)
 			*p = 0;
 
@@ -1868,7 +1931,7 @@ static int alloc_remote_string(struct dump_info *di, unsigned long addr,
 static int print_fmt_token(FILE *ft, struct dump_info *di,
 			   const char *fmt_string, int n,
 			   struct dump_data_elem *es_ptr, int fmt_offset,
-                           int len, int es_index)
+			   int len, int es_index)
 {
 #define ASPRINTF_CASE(t) \
 	ret = asprintf(&d_str, token, *(t)data_ptr); break
@@ -2830,7 +2893,7 @@ static int init_from_auxv(struct dump_info *di, ElfW(auxv_t) *auxv,
 
 	dyn_addr = dyn_addr + relocation;
 
-  	for (i = 0; ; i++) {
+	for (i = 0; ; i++) {
 		/* val32 = (ElfW(Dyn))dyn_addr[i].d_tag */
 		addr = dyn_addr + (sizeof(ElfW(Dyn)) * i)
 		       + offsetof(ElfW(Dyn), d_tag);
@@ -3005,6 +3068,25 @@ static void write_proc_info(struct dump_info *di)
 	copy_proc_files(di, 1, "fd", 1);
 }
 
+static void setup_public_subdir(const char *base, const char *subdir)
+{
+	size_t size;
+	char *name;
+
+	size = strlen(base) + 1 + strlen(subdir) + 1;
+
+	name = malloc(size);
+	if (!name)
+		return;
+
+	snprintf(name, size, "%s/%s", base, subdir);
+
+	mkdir(name, 01777);
+	chmod(name, 01777);
+
+	free(name);
+}
+
 /*
  * We want:
  * # cat /proc/sys/kernel/core_pattern
@@ -3114,8 +3196,11 @@ int main(int argc, char **argv)
 		unlink(di.core_path);
 
 	/* notify registered apps (if configured) */
-	if (di.cfg->prog_config.live_dumper)
-		start_dbus_gloop(&di,argv[0]);
+	if (di.cfg->prog_config.live_dumper) {
+		chmod(di.dst_dir, 01777);
+		setup_public_subdir(di.dst_dir, "proc");
+		trigger_live_dump(&di, argv[0]);
+	}
 
 	/* close log streams */
 	if (di.info_file)

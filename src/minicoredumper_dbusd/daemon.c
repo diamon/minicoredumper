@@ -298,7 +298,7 @@ gboolean value_object_register(CrashObject *obj, gchar *app_uuid,
 	dbg("Called register app_uuid = %s", app_uuid);
 	g_assert(obj != NULL);
 
-    	appElem = (appInfo *)malloc(sizeof(appInfo));
+	appElem = (appInfo *)malloc(sizeof(appInfo));
 	appElem->pid = pid;
 	if (asprintf(&appElem->uuid, "%s", app_uuid) == -1) {
 		dbg("can't get mem!");

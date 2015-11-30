@@ -22,8 +22,11 @@ lib_LTLIBRARIES = libminicoredumper.la
 libminicoredumper_la_SOURCES = mcd.c dump_data_private.h
 
 if USE_DBUS
+libminicoredumper_la_LDFLAGS =
 libminicoredumper_la_SOURCES += dbus_mcd.c
 dbus_CFLAGS += -DUSE_DBUS -I$(top_srcdir)/src/dbus -I$(top_srcdir)/src/compat
+else
+libminicoredumper_la_LDFLAGS = -lpthread
 endif
 
 libminicoredumper_la_CFLAGS = -g -Wall -std=c99 -D_GNU_SOURCE $(MCD_WERROR) \
@@ -40,4 +43,4 @@ include_HEADERS = $(top_srcdir)/src/api/minicoredumper.h
 #    then increment age.
 # 4) If any interfaces have been removed or changed since the last public
 #    release, then set age to 0.
-libminicoredumper_la_LDFLAGS = -version-info 1:1:0
+libminicoredumper_la_LDFLAGS += -version-info 1:1:0

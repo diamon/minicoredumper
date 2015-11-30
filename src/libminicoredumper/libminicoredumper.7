@@ -5,7 +5,7 @@
 .\" This file has been put into the public domain.
 .\" You can do whatever you want with this file.
 .\"
-.TH LIBMINICOREDUMPER 7 "2015-11-03" "Ericsson" "minicoredumper"
+.TH LIBMINICOREDUMPER 7 "2015-11-30" "Ericsson" "minicoredumper"
 .
 .SH NAME
 libminicoredumper \- a library for registering application data for dumping
@@ -22,14 +22,14 @@ The data can be dumped into a
 file (in case this application crashes), or into separate files for simple
 access.
 .PP
-If activated in the library and enabled in the application,
-.B libminicoredumper
-is able to register with
-.BR minicoredumper_dbusd (1)
-via D-Bus. With this, when some other application crashes, this application
-will be notified and also dump its registered variables. This allows variable
-information from multiple applications to be dumped if any of the
-applications crash.
+If initialized in the application, a separate thread is created to monitor
+for external trigger dump events. When some other application crashes, this
+application will be notified and also dump its registered variables. This
+allows variable information from multiple applications to be dumped if any
+of the applications crash. Depending on the configuration options and
+runtime setup, either D-Bus or
+.BR inotify (7)
+is used as the underlying trigger mechanism.
 .
 .SH NOTES
 In order for the

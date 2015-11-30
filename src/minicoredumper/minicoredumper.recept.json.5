@@ -5,7 +5,7 @@
 .\" This file has been put into the public domain.
 .\" You can do whatever you want with this file.
 .\"
-.TH MINICOREDUMPER.RECEPT.JSON 5 "2015-11-03" "Ericsson" "minicoredumper"
+.TH MINICOREDUMPER.RECEPT.JSON 5 "2015-11-30" "Ericsson" "minicoredumper"
 .
 .SH NAME
 minicoredumper.recept.json \- a recept file used by the
@@ -71,7 +71,9 @@ to identify mutex attributes and states in shared memory.
 .B live_dumper
 (boolean) Whether the
 .BR minicoredumper (1)
-should notify registered dump applications via D-Bus.
+should trigger all registered
+.BR libminicoredumper (7)
+applications when a dump occurs.
 .TP
 .B write_proc_info
 (boolean) Whether interesting /proc files should be copied to the

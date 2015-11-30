@@ -101,25 +101,6 @@ static gboolean timerCallback(DBusGProxy *remoteobj)
 	return FALSE;
 }
 
-static void setup_public_subdir(const char *base, const char *subdir)
-{
-	size_t size;
-	char *name;
-
-	size = strlen(base) + 1 + strlen(subdir) + 1;
-
-	name = malloc(size);
-	if (!name)
-		return;
-
-	snprintf(name, size, "%s/%s", base, subdir);
-
-	mkdir(name, 01777);
-	chmod(name, 01777);
-
-	free(name);
-}
-
 /**
  *  Thread with dbus init and registers a Timeout at the end
  */
@@ -130,11 +111,7 @@ int start_dbus_gloop(void *_di)
 	DBusGProxy *remoteValue;
 	GError *error = NULL;
 
-	info("Corestripper live dumper ... ");
-
-	chmod(di->dst_dir, 01777);
-
-	setup_public_subdir(di->dst_dir, "proc");
+	info("Corestripper live dumper (D-Bus)");
 
 	localstate.state = STATE_MCD_CRASHED;
 	localstate.path = di->dst_dir;

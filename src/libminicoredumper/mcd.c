@@ -24,8 +24,11 @@
 #include <printf.h>
 #include <pthread.h>
 #include <errno.h>
+#include <poll.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/inotify.h>
 
 #include "dump_data_private.h"
 #include "minicoredumper.h"
@@ -34,9 +37,6 @@ static pthread_mutex_t dump_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct mcd_dump_data *mcd_dump_data_head;
 int mcd_dump_data_version = DUMP_DATA_VERSION;
-
-extern void *start_dbus_gloop(void *);
-extern void stop_dbus_gloop(void);
 
 static int print_fmt_token(FILE *ft, struct mcd_dump_data *dd, int fmt_offset,
 			   int len, int es_index)
@@ -299,13 +299,16 @@ int dump_data_walk(char *path, unsigned long dump_scope)
 	return err;
 }
 
+/* monitor thread */
+static pthread_t monitor_thread_id;
+
 #ifdef USE_DBUS
-/* dbus thread */
-static pthread_t dbus_thread_id;
+extern void *start_dbus_gloop(void *);
+extern void stop_dbus_gloop(void);
 
 int mcd_dump_data_dbus_start(void)
 {
-	pthread_create(&dbus_thread_id, NULL, &start_dbus_gloop, NULL);
+	pthread_create(&monitor_thread_id, NULL, &start_dbus_gloop, NULL);
 
 	return 0;
 }
@@ -313,15 +316,184 @@ int mcd_dump_data_dbus_start(void)
 void mcd_dump_data_dbus_stop(void)
 {
 	stop_dbus_gloop();
-	pthread_join(dbus_thread_id, NULL);
+	pthread_join(monitor_thread_id, NULL);
 }
 #else
+static int monitor_thread_pipe[2] = { -1, -1 };
+static const char *monitor_fname;
+static int monitor_fd = -1;
+
+static void do_dump(const char *trigger_file)
+{
+	size_t buf_size = PATH_MAX + 10;
+	unsigned long dump_scope;
+	char *buf;
+	FILE *f;
+	char *p;
+
+	buf = malloc(buf_size);
+	if (!buf)
+		return;
+
+	f = fopen(monitor_fname, "r");
+	if (!f)
+		goto out;
+
+	if (!fgets(buf, buf_size, f))
+		goto out;
+	if (strncmp(buf, "version=", strlen("version=")) != 0)
+		goto out;
+	if (atoi(buf + strlen("version=")) != DUMP_DATA_VERSION)
+		goto out;
+	if (!fgets(buf, buf_size, f))
+		goto out;
+	if (strncmp(buf, "scope=", strlen("scope=")) != 0)
+		goto out;
+	dump_scope = strtoul(buf + strlen("scope="), NULL, 10);
+	if (!fgets(buf, buf_size, f))
+		goto out;
+	if (strncmp(buf, "path=", strlen("path=")) != 0)
+		goto out;
+
+	/* strip newline */
+	p = strchr(buf, '\n');
+	if (p)
+		*p = 0;
+
+	dump_data_walk(buf + strlen("path="), dump_scope);
+out:
+	if (f)
+		fclose(f);
+	free(buf);
+}
+
+static void *monitor_thread(void *arg)
+{
+	size_t ib_size = sizeof(struct inotify_event) + NAME_MAX + 1;
+	const char *trigger_file = arg;
+	struct inotify_event *iev;
+	struct pollfd fds[2];
+	char *ib;
+
+	ib = malloc(ib_size);
+	if (!ib)
+		return NULL;
+
+	memset(fds, 0, sizeof(fds));
+	fds[0].fd = monitor_thread_pipe[0];
+	fds[0].events = POLLIN;
+	fds[1].fd = monitor_fd;
+	fds[1].events = POLLIN;
+
+	while (1) {
+		fds[0].revents = 0;
+		fds[1].revents = 0;
+
+		if (poll(fds, 2, -1) <= 0) {
+			if (errno != -EINTR)
+				break;
+		}
+
+		/* inotify event */
+		if (fds[1].revents == POLLIN) {
+			memset(ib, 0, ib_size);
+			read(monitor_fd, ib, ib_size);
+			iev = (struct inotify_event *)ib;
+
+			if ((iev->mask & IN_CLOSE_WRITE) &&
+			    strcmp(iev->name, trigger_file) == 0) {
+				/* dump trigger */
+				do_dump(trigger_file);
+			}
+		}
+
+		/* pipe event */
+		if (fds[0].revents == POLLIN) {
+			char c;
+			if (read(monitor_thread_pipe[0], &c, 1) == 1) {
+				if (c == 'q') {
+					/* quit request */
+					break;
+				}
+			}
+		}
+	}
+
+	free(ib);
+
+	return NULL;
+}
+
 int mcd_dump_data_dbus_start(void)
 {
+	char *monitor_dname;
+	char *basename;
+
+	if (monitor_fd >= 0)
+		return -1;
+
+	monitor_fname = getenv(DUMP_DATA_MONITOR_ENV);
+	if (!monitor_fname || monitor_fname[0] != '/')
+		return -1;
+
+	monitor_dname = strdup(monitor_fname);
+	if (!monitor_dname)
+		return -1;
+
+	basename = strrchr(monitor_dname, '/');
+	*basename = 0;
+	basename++;
+
+	monitor_fd = inotify_init();
+	if (monitor_fd < 0)
+		goto err_out1;
+
+	if (inotify_add_watch(monitor_fd, monitor_dname, IN_CLOSE_WRITE) < 0)
+		goto err_out2;
+
+	if (pipe(monitor_thread_pipe) != 0)
+		goto err_out2;
+
+	if (pthread_create(&monitor_thread_id, NULL,
+			   &monitor_thread, basename) != 0) {
+		goto err_out3;
+	}
+
+	return 0;
+
+err_out3:
+	close(monitor_thread_pipe[0]);
+	monitor_thread_pipe[0] = -1;
+	close(monitor_thread_pipe[1]);
+	monitor_thread_pipe[1] = -1;
+err_out2:
+	close(monitor_fd);
+	monitor_fd = -1;
+err_out1:
+	free(monitor_dname);
+
 	return -1;
 }
+
 void mcd_dump_data_dbus_stop(void)
 {
+	if (monitor_fd < 0)
+		return;
+
+	while (write(monitor_thread_pipe[1], "q", 1) != 1) {
+		/* only loop if interrupted by signal */
+		if (errno != EINTR)
+			break;
+	}
+	pthread_join(monitor_thread_id, NULL);
+
+	close(monitor_thread_pipe[0]);
+	monitor_thread_pipe[0] = -1;
+	close(monitor_thread_pipe[1]);
+	monitor_thread_pipe[1] = -1;
+
+	close(monitor_fd);
+	monitor_fd = -1;
 }
 #endif /* USE_DBUS */
 

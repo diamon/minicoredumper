@@ -24,23 +24,21 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <glib.h>
-#include <dbus/dbus-glib.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/syscall.h>
-#include <stdio.h>
-#include <stdarg.h>
 #include <unistd.h>
 #include <errno.h>
-#include <syslog.h>
+#include <fcntl.h>
+#include <stddef.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-#include <fnmatch.h>
-#include <linux/futex.h>
-#include <sys/syscall.h>
-#include <stddef.h>
+
+#include "dump_data_private.h"
+
+#ifdef USE_DBUS
+#include <glib.h>
+#include <dbus/dbus-glib.h>
 
 /* Pull the common symbolic defines. */
 #include "common.h"
@@ -87,40 +85,11 @@ static gboolean timerCallback(DBusGProxy *remoteobj)
 	return FALSE;
 }
 
-static int usage(const char *argv0, const char *msg)
-{
-	fprintf(stderr, "error: %s\n", msg);
-	fprintf(stderr, "usage: %s <absolute-dump-path> <dump-scope>\n",
-		argv0);
-	return 1;
-}
-
-/**
- *  Thread with dbus init and registers a Timeout at the end
- */
-int main(int argc, char *argv[])
+static void do_trigger(const char *dump_path, int dump_scope)
 {
 	DBusGProxy *remoteValue;
 	DBusGConnection *bus;
 	GError *error = NULL;
-	char *tmp_path;
-
-	if (argc != 3)
-		return usage(argv[0], "wrong number of arguments");
-
-	if (argv[1][0] != '/')
-		return usage(argv[0], "dump path not absolute");
-
-	printf("Triggering minicoredumper live dumper...\n");
-
-	mkdir(argv[1], 01777);
-	chmod(argv[1], 01777);
-
-	if (asprintf(&tmp_path, "%s/proc", argv[1]) != -1) {
-		mkdir(tmp_path, 01777);
-		chmod(tmp_path, 01777);
-		free(tmp_path);
-	}
 
 	g_type_init_compat();
 
@@ -164,17 +133,115 @@ int main(int argc, char *argv[])
 	g_timeout_add(TIME_OUT, (GSourceFunc)timerCallback, remoteValue);
 
 	printf("Signal crash state to DUMP to registered applications\n");
-	org_ericsson_mcd_setcrashstate(remoteValue, 0,
-				       STATE_MCD_USER_DUMP,
-				       atoi(argv[2]), argv[1],
-				       &error);
+	org_ericsson_mcd_setcrashstate(remoteValue, 0, STATE_MCD_USER_DUMP,
+				       dump_scope, dump_path, &error);
 	if (error) {
 		handleError("Failed to set crash state", error->message,
 			    FALSE);
-		printf("Failed to set crash state, Message: %s\n",error->message);
+		printf("Failed to set crash state, Message: %s\n",
+		       error->message);
 	}
 
 	g_main_loop_run(mainloop);
+}
+#else
+static void do_trigger(const char *dump_path, int dump_scope)
+{
+	const char *monitor_fname;
+	char *tmp_path;
+	FILE *f;
+	int fd;
+
+	monitor_fname = getenv(DUMP_DATA_MONITOR_ENV);
+	if (!monitor_fname || monitor_fname[0] != '/') {
+		fprintf(stderr,
+			"error: %s not defined, not triggering live dump\n",
+			DUMP_DATA_MONITOR_ENV);
+		return;
+	}
+
+	if (asprintf(&tmp_path, "%s/monitor.XXXXXX", dump_path) == -1) {
+		fprintf(stderr, "error: failed to allocate temp string\n");
+		return;
+	}
+
+	fd = mkstemp(tmp_path);
+	if (fd < 0) {
+		fprintf(stderr, "error: failed to create temp file\n");
+		goto out;
+	}
+
+	f = fdopen(fd, "w");
+	if (!f) {
+		fprintf(stderr, "error: failed to reopen temp file\n");
+		close(fd);
+		goto out;
+	}
+
+	fprintf(f, "version=%d\n", DUMP_DATA_VERSION);
+	fprintf(f, "scope=%d\n", dump_scope);
+	fprintf(f, "path=%s\n", dump_path);
+
+	fclose(f);
+
+	chmod(tmp_path, 0644);
+
+	if (rename(tmp_path, monitor_fname) != 0) {
+		fprintf(stderr, "error: failed to rename %s to %s\n", tmp_path,
+		     monitor_fname);
+		unlink(tmp_path);
+		goto out;
+	}
+
+	f = fopen(monitor_fname, "a");
+	if (!f) {
+		fprintf(stderr, "error: failed to append to %s\n",
+			 monitor_fname);
+		goto out;
+	}
+
+	/* inotify trigger */
+	fclose(f);
+
+	printf("Trigger success!\n");
+out:
+	free(tmp_path);
+}
+#endif
+
+static int usage(const char *argv0, const char *msg)
+{
+	fprintf(stderr, "error: %s\n", msg);
+	fprintf(stderr, "usage: %s <absolute-dump-path> <dump-scope>\n",
+		argv0);
+	return 1;
+}
+
+/**
+ *  Thread with dbus init and registers a Timeout at the end
+ */
+int main(int argc, char *argv[])
+{
+	char *tmp_path;
+
+	if (argc != 3)
+		return usage(argv[0], "wrong number of arguments");
+
+	if (argv[1][0] != '/')
+		return usage(argv[0], "dump path not absolute");
+
+	printf("Triggering minicoredumper live dumper...\n");
+
+	mkdir(argv[1], 01777);
+	chmod(argv[1], 01777);
+
+	if (asprintf(&tmp_path, "%s/proc", argv[1]) != -1) {
+		mkdir(tmp_path, 01777);
+		chmod(tmp_path, 01777);
+		free(tmp_path);
+	}
+
+	do_trigger(argv[1], atoi(argv[2]));
 
 	return 0;
 }
