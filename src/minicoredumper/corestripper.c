@@ -1535,6 +1535,44 @@ static void close_sym(struct dump_info *di)
 	}
 }
 
+static void cleanup_di(struct dump_info *di)
+{
+	struct core_data *core_data;
+	struct core_vma *vma;
+
+	close_sym(di);
+
+	if (di->core_fd >= 0)
+		close(di->core_fd);
+	if (di->fatcore_fd >= 0)
+		close(di->fatcore_fd);
+	if (di->mem_fd >= 0)
+		close(di->mem_fd);
+	if (di->info_file)
+		fclose(di->info_file);
+
+	/* delete unused (empty) core if we have compressed */
+	if (di->cfg->prog_config.core_compressed)
+		unlink(di->core_path);
+
+	free(di->tsks);
+	free(di->core_path);
+	free(di->dst_dir);
+	free(di->exe);
+	while (di->core_file) {
+		core_data = di->core_file;
+		di->core_file = core_data->next;
+		free(core_data);
+	}
+	while (di->vma) {
+		vma = di->vma;
+		di->vma = vma->next;
+		free(vma);
+	}
+
+	free_config(di->cfg);
+}
+
 static int get_stack_pointer(pid_t pid, unsigned long *addr)
 {
 #define STAT_LINE_MAXSIZE 4096
@@ -2424,6 +2462,8 @@ static void dump_fat_core(struct dump_info *di)
 		if (copy_data(di->mem_fd, di->fatcore_fd, -1, len, buf) < 0)
 			break;
 	}
+
+	free(buf);
 }
 
 static int copy_file(const char *dest, const char *src)
@@ -2805,6 +2845,8 @@ static void get_pthread_list(struct dump_info *di)
 		err = td_ta_thr_iter(ta, find_pthreads_cb, NULL,
 				     TD_THR_ANY_STATE, TD_THR_LOWEST_PRIORITY,
 				     TD_SIGNO_MASK, TD_THR_ANY_USER_FLAGS);
+
+		td_ta_delete(ta);
 	}
 
 	if (err == TD_NOLIBTHREAD) {
@@ -2957,6 +2999,8 @@ static int get_so_list(struct dump_info *di)
 	 * (this is the r_debug structure) */
 	if (init_from_auxv(di, buf, &ptr) != 0)
 		return -1;
+
+	free(buf);
 
 	if (!ptr)
 		return 0;
@@ -3181,20 +3225,6 @@ int main(int argc, char **argv)
 	if (di.cfg->prog_config.dump_fat_core)
 		dump_fat_core(&di);
 
-	/* we are done, cleanup */
-
-	close_sym(&di);
-
-	if (di.core_fd >= 0)
-		close(di.core_fd);
-	if (di.fatcore_fd >= 0)
-		close(di.fatcore_fd);
-	if (di.mem_fd >= 0)
-		close(di.mem_fd);
-
-	if (di.cfg->prog_config.core_compressed)
-		unlink(di.core_path);
-
 	/* notify registered apps (if configured) */
 	if (di.cfg->prog_config.live_dumper) {
 		chmod(di.dst_dir, 01777);
@@ -3202,11 +3232,10 @@ int main(int argc, char **argv)
 		trigger_live_dump(&di, argv[0]);
 	}
 
-	/* close log streams */
-	if (di.info_file)
-		fclose(di.info_file);
-	closelog();
 
+	/* we are done, cleanup */
+	cleanup_di(&di);
+	closelog();
 	munlockall();
 
 	return 0;

@@ -620,3 +620,45 @@ int init_prog_config(struct config *cfg, const char *cfg_file)
 
 	return ret;
 }
+
+void free_config(struct config *cfg)
+{
+	struct interesting_buffer *buf;
+	struct interesting_prog *prog;
+	int i;
+
+	if (cfg->base_dir)
+		free(cfg->base_dir);
+
+	while (cfg->ilist) {
+		prog = cfg->ilist;
+		cfg->ilist = prog->next;
+		if (prog->exe)
+			free(prog->exe);
+		if (prog->comm)
+			free(prog->comm);
+		if (prog->recept)
+			free(prog->recept);
+		free(prog);
+	}
+
+	for (i = 0; i < cfg->prog_config.maps.nglobs; i++)
+		free(cfg->prog_config.maps.name_globs[i]);
+	if (cfg->prog_config.maps.name_globs)
+		free(cfg->prog_config.maps.name_globs);
+
+	while (cfg->prog_config.buffers) {
+		buf = cfg->prog_config.buffers;
+		cfg->prog_config.buffers = buf->next;
+		if (buf->symname)
+			free(buf->symname);
+		free(buf);
+	}
+
+	if (cfg->prog_config.core_compressor)
+		free(cfg->prog_config.core_compressor);
+	if (cfg->prog_config.core_compressor_ext)
+		free(cfg->prog_config.core_compressor_ext);
+
+	free(cfg);
+}

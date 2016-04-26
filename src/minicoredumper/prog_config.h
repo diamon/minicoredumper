@@ -85,5 +85,6 @@ const char *get_prog_recept(struct config *cfg, const char *comm,
 struct config *init_config(const char *cfg_file);
 int init_prog_config(struct config *cfg, const char *cfg_file);
 int simple_match(const char *pattern, const char *string);
+void free_config(struct config *cfg);
 
 #endif /* CONFIG_H */
