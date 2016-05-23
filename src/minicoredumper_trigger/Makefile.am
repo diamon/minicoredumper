@@ -9,17 +9,17 @@ bin_PROGRAMS = minicoredumper_trigger
 
 dist_man_MANS = minicoredumper_trigger.1
 
+if USE_DBUS
 
 dbus_mcd.h: $(top_srcdir)/src/dbus/interface.xml
 	dbus-binding-tool --prefix=value_object --mode=glib-client $< > $@
 
 main.c: dbus_mcd.h
 
-minicoredumper_trigger_SOURCES = main.c
-
-if USE_DBUS
 dbus_CFLAGS += -DUSE_DBUS -I$(top_srcdir)/src/dbus
 endif
+
+minicoredumper_trigger_SOURCES = main.c
 
 minicoredumper_trigger_LDADD = @dbus_LIBS@
 minicoredumper_trigger_CFLAGS = -g -Wall -std=c99 -D_GNU_SOURCE $(MCD_WERROR) \

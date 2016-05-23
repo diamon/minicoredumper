@@ -12,16 +12,15 @@ dist_man_MANS = libminicoredumper.7
 
 EXTRA_DIST = minicoredumper.pc.in minicoredumper-uninstalled.pc.in
 
-dbus_mcd.h: $(top_srcdir)/src/dbus/interface.xml
-	dbus-binding-tool --prefix=value_object --mode=glib-client $< > $@
-
-dbus_mcd.c: dbus_mcd.h
-
 lib_LTLIBRARIES = libminicoredumper.la
 
 libminicoredumper_la_SOURCES = mcd.c dump_data_private.h
 
 if USE_DBUS
+dbus_mcd.h: $(top_srcdir)/src/dbus/interface.xml
+	dbus-binding-tool --prefix=value_object --mode=glib-client $< > $@
+
+dbus_mcd.c: dbus_mcd.h
 libminicoredumper_la_LDFLAGS =
 libminicoredumper_la_SOURCES += dbus_mcd.c
 dbus_CFLAGS += -DUSE_DBUS -I$(top_srcdir)/src/dbus -I$(top_srcdir)/src/compat

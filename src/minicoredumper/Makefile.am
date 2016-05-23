@@ -10,16 +10,16 @@ bin_PROGRAMS = minicoredumper
 dist_man_MANS = minicoredumper.cfg.json.5 minicoredumper.recept.json.5 \
 		minicoredumper.1
 
+minicoredumper_SOURCES = corestripper.c corestripper.h \
+			 prog_config.c prog_config.h
+
+if USE_DBUS
 
 dbus_mcd.h: $(top_srcdir)/src/dbus/interface.xml
 	dbus-binding-tool --prefix=value_object --mode=glib-client $< > $@
 
 dbus_mcd.c: dbus_mcd.h
 
-minicoredumper_SOURCES = corestripper.c corestripper.h \
-			 prog_config.c prog_config.h
-
-if USE_DBUS
 minicoredumper_SOURCES += dbus_mcd.c
 dbus_CFLAGS += -DUSE_DBUS -I$(top_srcdir)/src/dbus -I$(top_srcdir)/src/compat
 endif
