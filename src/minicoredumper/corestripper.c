@@ -1621,11 +1621,26 @@ out_err:
 #undef STAT_LINE_MAXSIZE
 }
 
+static struct core_vma *get_next_vma_range(struct dump_info *di,
+					   unsigned long start,
+					   unsigned long end,
+					   struct core_vma *vma)
+{
+	/* check for range overlap with vma */
+	for ( ; vma; vma = vma->next) {
+		if (end > vma->start && start < vma->mem_end)
+			break;
+	}
+
+	return vma;
+}
+
 static struct core_vma *get_vma_pos(struct dump_info *di, unsigned long addr)
 {
-	struct core_vma *vma = di->vma;
+	struct core_vma *vma;
 
 	for (vma = di->vma; vma; vma = vma->next) {
+		/* check for address within vma */
 		if (addr >= vma->start && addr < vma->mem_end)
 			break;
 	}
@@ -1641,48 +1656,65 @@ static struct core_vma *get_vma_pos(struct dump_info *di, unsigned long addr)
 static int dump_vma(struct dump_info *di, unsigned long start, size_t len,
 		    size_t balloon, const char *fmt, ...)
 {
+	unsigned long dump_start;
+	unsigned long dump_end;
 	struct core_vma *tmp;
 	unsigned long end;
 	char *desc = NULL;
+	int err = 0;
 	va_list ap;
 
-	tmp = get_vma_pos(di, start);
+	end = start + len;
+
+	tmp = get_next_vma_range(di, start, end, di->vma);
 	if (!tmp) {
 		info("vma not found start=0x%lx! bad recept or internal bug!",
 		     start);
 		return EINVAL;
 	}
 
-	end = start + len;
-
-	if (balloon > 0) {
-		/* the balloon argument lowers the start and
-		 * raises the end by the amount "balloon" */
-		start -= balloon;
-		end += balloon;
-	}
-
-	/* only dump what is actually in VMA */
-	if (start < tmp->start)
-		start = tmp->start;
-	if (end > tmp->mem_end)
-		end = tmp->mem_end;
-
-	/* make sure we have something to dump */
-	if (start >= end)
-		return 0;
-
-	len = end - start;
-
 	va_start(ap, fmt);
 	vasprintf(&desc, fmt, ap);
 	va_end(ap);
-	info("dump: %s: %zu bytes @ 0x%lx", desc ? desc : "", len, start);
+
+	while (tmp) {
+		dump_start = start;
+		dump_end = end;
+
+		if (balloon > 0) {
+			/* the balloon argument lowers the start and
+			 * raises the end by the amount "balloon" */
+			dump_start -= balloon;
+			dump_end += balloon;
+		}
+
+		/* only dump what is actually in VMA */
+		if (dump_start < tmp->start)
+			dump_start = tmp->start;
+		if (dump_end > tmp->mem_end)
+			dump_end = tmp->mem_end;
+
+		/* make sure we have something to dump */
+		if (dump_start < dump_end) {
+			len = dump_end - dump_start;
+
+			info("dump: %s: %zu bytes @ 0x%lx", desc ? desc : "",
+			     len, dump_start);
+
+			err = add_core_data(di, tmp->file_off + dump_start -
+						tmp->start, len, di->mem_fd,
+					    dump_start);
+			if (err)
+				break;
+		}
+
+		tmp = get_next_vma_range(di, start, end, tmp->next);
+	}
+
 	if (desc)
 		free(desc);
 
-	return add_core_data(di, tmp->file_off + start - tmp->start, len,
-			     di->mem_fd, start);
+	return err;
 }
 
 static int note_cb(struct dump_info *di, Elf *elf, GElf_Phdr *phdr)
