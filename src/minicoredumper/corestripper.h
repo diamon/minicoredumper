@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 Ericsson AB
+ * Copyright (c) 2012-2016 Ericsson AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,7 @@
 #ifndef __CORESTRIPPER_H__
 #define __CORESTRIPPER_H__
 
+#include <stdio.h>
 #include <libelf.h>
 #include <gelf.h>
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2015 Ericsson AB
+ * Copyright (C) 2012-2016 Ericsson AB
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -397,13 +397,14 @@ static void *monitor_thread(void *arg)
 		/* inotify event */
 		if (fds[1].revents == POLLIN) {
 			memset(ib, 0, ib_size);
-			read(monitor_fd, ib, ib_size);
-			iev = (struct inotify_event *)ib;
+			if (read(monitor_fd, ib, ib_size) == ib_size) {
+				iev = (struct inotify_event *)ib;
 
-			if ((iev->mask & IN_CLOSE_WRITE) &&
-			    strcmp(iev->name, trigger_file) == 0) {
-				/* dump trigger */
-				do_dump(trigger_file);
+				if ((iev->mask & IN_CLOSE_WRITE) &&
+				    strcmp(iev->name, trigger_file) == 0) {
+					/* dump trigger */
+					do_dump(trigger_file);
+				}
 			}
 		}
 

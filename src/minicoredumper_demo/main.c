@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 Ericsson AB
+ * Copyright (c) 2012-2016 Ericsson AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,12 +55,12 @@ int __attribute__((optimize("O0"))) main(int argc, char *argv[])
 		return 1;
 	*val3 = 0x3abc123d;
 
+#if (__SIZEOF_LONG__ == 8)
 	/* fill the rest for 64-bit types */
-	if (sizeof(unsigned long) == 8) {
-		val1 |= (unsigned long)0x4abc123c << 32;
-		val2 |= (unsigned long)0x5abc123b << 32;
-		*val3 |= (unsigned long)0x6abc123a << 32;
-	}
+	val1 |= (unsigned long)0x4abc123c << 32;
+	val2 |= (unsigned long)0x5abc123b << 32;
+	*val3 |= (unsigned long)0x6abc123a << 32;
+#endif
 
 	/* start dbus thread */
 	mcd_dump_data_dbus_start();

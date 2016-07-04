@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 Ericsson AB
+ * Copyright (c) 2012-2016 Ericsson AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -166,12 +166,12 @@ static int read_prog_compression_config(json_value *v_root,
 			cfg->core_compressor_ext = strdup(v->u.string.ptr);
 			if (!cfg->core_compressor_ext)
 				return -1;
-	
+
 		} else if (strcmp(n, "in_tar") == 0) {
 			if (v->type != json_boolean)
 				return -1;
 			cfg->core_in_tar = v->u.boolean;
-	
+
 		} else {
 			info("WARNING: ignoring unknown config item: %s", n);
 		}

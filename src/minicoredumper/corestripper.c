@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 Ericsson AB
+ * Copyright (c) 2012-2016 Ericsson AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1663,6 +1663,7 @@ static int dump_vma(struct dump_info *di, unsigned long start, size_t len,
 	char *desc = NULL;
 	int err = 0;
 	va_list ap;
+	int ret;
 
 	end = start + len;
 
@@ -1674,8 +1675,11 @@ static int dump_vma(struct dump_info *di, unsigned long start, size_t len,
 	}
 
 	va_start(ap, fmt);
-	vasprintf(&desc, fmt, ap);
+	ret = vasprintf(&desc, fmt, ap);
 	va_end(ap);
+
+	if (ret == -1)
+		return ENOMEM;
 
 	while (tmp) {
 		dump_start = start;
@@ -2576,11 +2580,11 @@ static int copy_link(const char *dest, const char *src)
 	/* readlink does not terminate the string */
 	linkname[ret] = 0;
 
-	symlink(linkname, dest);
+	ret = symlink(linkname, dest);
 
 	free(linkname);
 
-	return 0;
+	return ret;
 }
 
 static void copy_proc_files(struct dump_info *di, int tasks, const char *name,
@@ -3263,7 +3267,6 @@ int main(int argc, char **argv)
 		setup_public_subdir(di.dst_dir, "proc");
 		trigger_live_dump(&di, argv[0]);
 	}
-
 
 	/* we are done, cleanup */
 	cleanup_di(&di);
