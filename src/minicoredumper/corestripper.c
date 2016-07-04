@@ -48,9 +48,11 @@
 #include <sys/procfs.h>
 #include <sys/syscall.h>
 #include <linux/futex.h>
+#include <elfutils/version.h>
 
 #include "prog_config.h"
 #include "dump_data_private.h"
+#include "elf_dumplist.h"
 #include "minicoredumper.h"
 #include "corestripper.h"
 
@@ -542,6 +544,12 @@ static int do_elf_ph_parse(struct dump_info *di, GElf_Phdr *type,
 	ehdr = gelf_getehdr(elf, &ehdr_mem);
 	if (!ehdr) {
 		info("gelf_getehdr failed: %s", elf_errmsg(elf_errno()));
+		goto out;
+	}
+
+	di->elfclass = gelf_getclass(elf);
+	if (di->elfclass == ELFCLASSNONE) {
+		info("gelf_getclass failed: %s", elf_errmsg(elf_errno()));
 		goto out;
 	}
 
@@ -1196,8 +1204,8 @@ out:
 	free(buf);
 }
 
-static int add_core_data(struct dump_info *di, off64_t dest_offset, size_t len,
-			 int src_fd, off64_t src_offset)
+int add_core_data(struct dump_info *di, off64_t dest_offset, size_t len,
+		  int src_fd, off64_t src_offset)
 {
 	struct core_data *prev = NULL;
 	off64_t start = dest_offset;
@@ -3247,6 +3255,14 @@ int main(int argc, char **argv)
 
 	/* dump registered application data */
 	dyn_dump(&di);
+
+#if _ELFUTILS_PREREQ(0, 167)
+	/* add a new elf section containing the dump list */
+	if (add_dump_list(&di) != 0)
+		info("WARNING: failed to add dump list");
+#else
+	info("WARNING: libelf too old to support dump list");
+#endif
 
 	/* dump data to compressed tar'd sparse core file */
 	if (dump_compressed_tar(&di) != 0) {

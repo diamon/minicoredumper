@@ -11,6 +11,7 @@ dist_man_MANS = minicoredumper.cfg.json.5 minicoredumper.recept.json.5 \
 		minicoredumper.1
 
 minicoredumper_SOURCES = corestripper.c corestripper.h \
+			 elf_dumplist.c elf_dumplist.h \
 			 prog_config.c prog_config.h
 
 if USE_DBUS

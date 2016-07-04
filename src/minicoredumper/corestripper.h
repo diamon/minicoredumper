@@ -112,4 +112,7 @@ struct dump_info {
 	off64_t core_file_size;
 };
 
+int add_core_data(struct dump_info *di, off64_t dest_offset, size_t len,
+		  int src_fd, off64_t src_offset);
+
 #endif
