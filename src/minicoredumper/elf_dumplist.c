@@ -316,17 +316,21 @@ static int do_add_dump_list(struct dump_info *di, struct dumplist_note *note,
 	ehdr.e_shoff = last_offset;
 	gelf_update_ehdr(e, &ehdr);
 
-	last_offset += ehdr.e_shentsize * ehdr.e_shnum;
-
 	elf_flagelf(e, ELF_C_SET, ELF_F_DIRTY);
 
 	ret = elf_update(e, ELF_C_WRITE);
 	if (ret < 0)
 		return -1;
 
+	/* UPDATE LAST OFFSET */
+
+	if (gelf_getehdr(e, &ehdr) == NULL)
+		return -1;
+	last_offset += ehdr.e_shentsize * ehdr.e_shnum;
+
 	elf_end(e);
 
-	/* ADD NEW SECTIONS (AND HEADERS) TO CORE FILE */
+	/* ADD NEW SECTIONS (AND HEADERS) TO CORE DATA */
 
 	di->core_file_size = last_offset;
 
