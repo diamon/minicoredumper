@@ -326,6 +326,7 @@ static int init_di(struct dump_info *di, char **argv, int argc)
 	}
 
 	di->mem_fd = -1;
+	di->elf_fd = -1;
 	di->core_fd = -1;
 	di->fatcore_fd = -1;
 
@@ -441,6 +442,22 @@ static int init_di(struct dump_info *di, char **argv, int argc)
 	if (get_task_list(di) != 0)
 		return 1;
 
+	if (asprintf(&tmp_path, "/core-%s-%d-%s", comm_base, di->pid,
+		     timestamp_str) == -1) {
+		return 1;
+	}
+
+	di->elf_fd = shm_open(tmp_path, O_CREAT|O_EXCL|O_RDWR,
+			      S_IRUSR|S_IWUSR);
+	if (di->elf_fd < 0) {
+		info("unable to create shared object \'%s\': %s", tmp_path,
+		     strerror(errno));
+		free(tmp_path);
+		return 1;
+	}
+	shm_unlink(tmp_path);
+	free(tmp_path);
+
 	if (asprintf(&tmp_path, "%s/core", di->dst_dir) == -1)
 		return 1;
 	di->core_path = tmp_path;
@@ -525,12 +542,12 @@ static int do_elf_ph_parse(struct dump_info *di, GElf_Phdr *type,
 	size_t cnt;
 
 	/* start from beginning of core */
-	if (lseek64(di->core_fd, 0, SEEK_SET) == -1) {
+	if (lseek64(di->elf_fd, 0, SEEK_SET) == -1) {
 		info("lseek failed: %s", strerror(errno));
 		goto out;
 	}
 
-	elf = elf_begin(di->core_fd, ELF_C_READ, NULL);
+	elf = elf_begin(di->elf_fd, ELF_C_READ, NULL);
 	if (!elf) {
 		info("elf_begin failed: %s", elf_errmsg(elf_errno()));
 		goto out;
@@ -1193,10 +1210,6 @@ static void dump_mini_core(struct dump_info *di)
 	}
 
 	for (cur = di->core_file; cur; cur = cur->next) {
-		/* do not dump on ourself */
-		if (cur->mem_fd == di->core_fd)
-			continue;
-
 		if (lseek64(cur->mem_fd, cur->mem_start, SEEK_SET) == -1) {
 			info("lseek di->mem_fd failed at 0x%lx",
 			     cur->mem_start);
@@ -1356,7 +1369,6 @@ static int init_src_core(struct dump_info *di, int src)
 	size_t len;
 	char *buf;
 	long pos;
-	int i;
 
 	buf = malloc(PAGESZ);
 	if (!buf)
@@ -1371,25 +1383,11 @@ static int init_src_core(struct dump_info *di, int src)
 	 */
 again:
 	/* copy 2 pages */
-	for (i = 0; i < 2; i++) {
-		if (read_file_fd(src, buf, PAGESZ) < 0) {
-			info("unable to read source core file");
-			goto out;
-		}
-
-		if (write_file_fd(di->core_fd, buf, PAGESZ) < 0) {
-			info("unable to write core file");
-			goto out;
-		}
-
-		if (di->cfg->prog_config.dump_fat_core) {
-			if (write_file_fd(di->fatcore_fd, buf, PAGESZ) < 0)
-				info("unable to write fatcore");
-		}
-	}
+	if (copy_data(src, di->elf_fd, di->fatcore_fd, PAGESZ * 2, buf) < 0)
+		goto out;
 
 	/* remember our position */
-	pos = lseek64(di->core_fd, 0, SEEK_CUR);
+	pos = lseek64(di->elf_fd, 0, SEEK_CUR);
 	if (pos == -1)
 		goto out;
 
@@ -1397,7 +1395,7 @@ again:
 	ret = parse_vma_info(di);
 
 	/* restore our position */
-	if (lseek64(di->core_fd, pos, SEEK_SET) == -1)
+	if (lseek64(di->elf_fd, pos, SEEK_SET) == -1)
 		goto out;
 
 	if (ret != 0) {
@@ -1417,17 +1415,17 @@ again:
 		len = di->vma_start - pos;
 
 		/* position in all cores is already correct, now copy */
-		if (copy_data(src, di->core_fd, di->fatcore_fd, len, buf) < 0)
+		if (copy_data(src, di->elf_fd, di->fatcore_fd, len, buf) < 0)
 			goto out;
 	}
 
-	add_core_data(di, 0, di->vma_start, di->core_fd, 0);
+	add_core_data(di, 0, di->vma_start, di->elf_fd, 0);
 
 	/* make the core big enough to fit all vma areas */
 	di->core_file_size = di->vma_end;
 
 	/* add empty core data to mark the size of the core file */
-	add_core_data(di, di->core_file_size, 0, di->core_fd, 0);
+	add_core_data(di, di->core_file_size, 0, di->elf_fd, 0);
 out:
 	free(buf);
 	return ret;
@@ -1569,6 +1567,8 @@ static void cleanup_di(struct dump_info *di)
 		close(di->core_fd);
 	if (di->fatcore_fd >= 0)
 		close(di->fatcore_fd);
+	if (di->elf_fd >= 0)
+		close(di->elf_fd);
 	if (di->mem_fd >= 0)
 		close(di->mem_fd);
 	if (di->info_file)

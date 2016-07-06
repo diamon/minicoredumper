@@ -229,9 +229,9 @@ static int do_add_dump_list(struct dump_info *di, struct dumplist_note *note,
 
 	/* INITIAL SETUP */
 
-	lseek64(di->core_fd, 0, SEEK_CUR);
+	lseek64(di->elf_fd, 0, SEEK_CUR);
 
-	e = elf_begin(di->core_fd, ELF_C_RDWR, NULL);
+	e = elf_begin(di->elf_fd, ELF_C_RDWR, NULL);
 	if (!e)
 		return -1;
 
@@ -335,7 +335,7 @@ static int do_add_dump_list(struct dump_info *di, struct dumplist_note *note,
 	di->core_file_size = last_offset;
 
 	add_core_data(di, store_offset, last_offset - store_offset,
-		      di->core_fd, store_offset);
+		      di->elf_fd, store_offset);
 
 	return 0;
 }

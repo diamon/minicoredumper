@@ -78,6 +78,7 @@ struct dump_info {
 	char *dst_dir;
 	char *core_path;
 	int mem_fd;
+	int elf_fd;
 	int core_fd;
 	int fatcore_fd;
 
