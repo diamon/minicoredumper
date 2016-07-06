@@ -849,6 +849,20 @@ static int dump_zero(int fd, off64_t count)
 	return 0;
 }
 
+/* fill the rest of the current block with zero */
+static int dump_zero_block_rest(int fd, size_t block_bytes_written)
+{
+	size_t rest;
+
+	rest = BLOCK_SIZE - (block_bytes_written % BLOCK_SIZE);
+
+	/* check if there is a rest */
+	if (rest == BLOCK_SIZE)
+		return 0;
+
+	return dump_zero(fd, rest);
+}
+
 static int open_compressor(struct dump_info *di, const char *core_suffix,
 			   char **path)
 {
@@ -1032,10 +1046,8 @@ static int dump_compressed_tar(struct dump_info *di)
 			block_bytes_written += 1;
 		}
 		/* fill to end of block */
-		if (dump_zero(fd, BLOCK_SIZE -
-				  (block_bytes_written % BLOCK_SIZE)) < 0) {
+		if (dump_zero_block_rest(fd, block_bytes_written) < 0)
 			goto out;
-		}
 	}
 
 	/* write data blocks */
@@ -1045,9 +1057,8 @@ static int dump_compressed_tar(struct dump_info *di)
 		if (cur == next_block) {
 			if (block_bytes_written % BLOCK_SIZE != 0) {
 				/* fill to end of block */
-				if (dump_zero(fd, BLOCK_SIZE -
-					          (block_bytes_written %
-						   BLOCK_SIZE)) < 0) {
+				if (dump_zero_block_rest(fd,
+				    block_bytes_written) < 0) {
 					goto out;
 				}
 			}
@@ -1076,6 +1087,10 @@ static int dump_compressed_tar(struct dump_info *di)
 		block_bytes_written += cur->end - cur->start;
 		offset = cur->end;
 	}
+
+	/* fill to end of block */
+	if (dump_zero_block_rest(fd, block_bytes_written) < 0)
+		goto out;
 
 	/* 2 empty blocks as EOF */
 	if (dump_zero(fd, BLOCK_SIZE * 2) < 0)
