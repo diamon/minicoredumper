@@ -100,7 +100,6 @@ static Elf_Scn *add_shstrtab_section(Elf *e)
 
 	shdr.sh_name = name;
 	shdr.sh_type = SHT_STRTAB;
-	shdr.sh_flags = SHF_STRINGS;
 	shdr.sh_addralign = 1;
 
 	gelf_update_shdr(scn, &shdr);
