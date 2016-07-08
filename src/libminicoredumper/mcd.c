@@ -560,6 +560,36 @@ out:
 	return err;
 }
 
+static size_t get_type_length(int type, void *data)
+{
+	switch (type) {
+	case PA_INT:
+		return sizeof(int);
+	case PA_CHAR:
+		return sizeof(char);
+	case PA_STRING:
+		return (strlen((char *)data) + 1);
+	case PA_POINTER:
+		return sizeof(void *);
+	case PA_FLOAT:
+		return sizeof(float);
+	case PA_DOUBLE:
+		return sizeof(double);
+	case (PA_INT | PA_FLAG_SHORT):
+		return sizeof(short);
+	case (PA_INT | PA_FLAG_LONG):
+		return sizeof(long);
+	case (PA_INT | PA_FLAG_LONG_LONG):
+		return sizeof(long long);
+	case (PA_DOUBLE | PA_FLAG_LONG_DOUBLE):
+		return sizeof(long double);
+	default:
+		break;
+	}
+
+	return 0;
+}
+
 int mcd_vdump_data_register_text(const char *ident, unsigned long dump_scope,
 				 mcd_dump_data_t *save_ptr,
 				 const char *fmt, va_list ap)
@@ -603,8 +633,8 @@ int mcd_vdump_data_register_text(const char *ident, unsigned long dump_scope,
 		ptr = va_arg(ap, void *);
 		es[i].flags = MCD_DATA_PTR_DIRECT | MCD_LENGTH_DIRECT;
 		es[i].data_ptr = ptr;
-		es[i].u.length = sizeof(ptr);
 		es[i].fmt_type = argtypes[i];
+		es[i].u.length = get_type_length(argtypes[i], ptr);
 	}
 
 	dd->type = MCD_TEXT;
