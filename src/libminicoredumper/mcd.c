@@ -402,7 +402,8 @@ static void *monitor_thread(void *arg)
 		/* inotify event */
 		if (fds[1].revents == POLLIN) {
 			memset(ib, 0, ib_size);
-			if (read(monitor_fd, ib, ib_size) == ib_size) {
+			if (read(monitor_fd, ib, ib_size) >
+			    sizeof(struct inotify_event)) {
 				iev = (struct inotify_event *)ib;
 
 				if ((iev->mask & IN_CLOSE_WRITE) &&
