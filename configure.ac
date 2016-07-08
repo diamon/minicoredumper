@@ -41,7 +41,6 @@ dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS([elf.h],,[AC_MSG_ERROR([elf.h missing!])])
-AC_CHECK_HEADERS([gelf.h],,[AC_MSG_ERROR([gelf.h missing!])])
 AC_CHECK_HEADERS([fcntl.h],,[AC_MSG_ERROR([fcntl.h missing!])])
 AC_CHECK_HEADERS([limits.h],,[AC_MSG_ERROR([limits.h missing!])])
 AC_CHECK_HEADERS([stddef.h],,[AC_MSG_ERROR([stddef.h missing!])])
@@ -81,6 +80,10 @@ AC_CHECK_PROG(PKGCONFIG_CHECK,pkg-config,yes)
 if test x$PKGCONFIG_CHECK != xyes ; then
 	AC_MSG_ERROR([pkg-config missing!])
 fi
+
+PKG_CHECK_MODULES([libelf], [libelf], [],
+		  AC_CHECK_HEADERS([gelf.h], [libelf_LIBS=-lelf],
+				   [AC_MSG_ERROR([gelf.h missing!])]))
 
 dnl default-enabled dbus feature
 AC_ARG_WITH([dbus],
