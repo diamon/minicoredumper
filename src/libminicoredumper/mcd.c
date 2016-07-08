@@ -43,6 +43,8 @@ static int print_fmt_token(FILE *ft, struct mcd_dump_data *dd, int fmt_offset,
 {
 #define ASPRINTF_CASE(t) \
 	ret = asprintf(&d_str, token, *(t)data_ptr); break
+#define ASPRINTF_CASE_NORESOLVE(t) \
+	ret = asprintf(&d_str, token, (t)data_ptr); break
 
 	struct dump_data_elem *elem;
 	int no_directives = 0;
@@ -82,7 +84,7 @@ static int print_fmt_token(FILE *ft, struct mcd_dump_data *dd, int fmt_offset,
 	case PA_CHAR:
 		ASPRINTF_CASE(char *);
 	case PA_STRING:
-		ASPRINTF_CASE(char **);
+		ASPRINTF_CASE_NORESOLVE(char *);
 	case PA_POINTER:
 		ASPRINTF_CASE(void **);
 	case PA_FLOAT:

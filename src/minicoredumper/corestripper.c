@@ -2032,6 +2032,8 @@ static int print_fmt_token(FILE *ft, struct dump_info *di,
 {
 #define ASPRINTF_CASE(t) \
 	ret = asprintf(&d_str, token, *(t)data_ptr); break
+#define ASPRINTF_CASE_NORESOLVE(t) \
+	ret = asprintf(&d_str, token, (t)data_ptr); break
 
 	int no_directives = 0;
 	char *data_str = NULL;
@@ -2087,12 +2089,7 @@ static int print_fmt_token(FILE *ft, struct dump_info *di,
 	case PA_CHAR:
 		ASPRINTF_CASE(char *);
 	case PA_STRING:
-		if (alloc_remote_string(di, (unsigned long)*(char **)data_ptr,
-					&data_str) != 0) {
-			goto out_err;
-		}
-		*(char **)data_ptr = data_str;
-		ASPRINTF_CASE(char **);
+		ASPRINTF_CASE_NORESOLVE(char *);
 	case PA_POINTER:
 		ASPRINTF_CASE(void **);
 	case PA_FLOAT:

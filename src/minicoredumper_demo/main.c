@@ -68,10 +68,10 @@ int __attribute__((optimize("O0"))) main(int argc, char *argv[])
 	/* register text dumps */
 	/* "This is string 1.\n" */
 	mcd_dump_data_register_text("tdump1.txt", 6, &dd[0],
-				    "%s\n", &str1);
+				    "%s\n", str1);
 	/* "This is string 2.\n" */
 	mcd_dump_data_register_text("tdump2.txt", 6, &dd[1],
-				    "%s\n", &str2);
+				    "%s\n", str2);
 	/* "val1: %lx=0x0 %x=0x0 %hx=0x0 %hhx=0x0\n" */
 	mcd_dump_data_register_text("tdump3.txt", 6, &dd[2],
 				    "val1: %%lx=0x%lx", &val1);

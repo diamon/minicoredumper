@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 Ericsson AB
+ * Copyright (c) 2012-2016 Ericsson AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,14 @@
 
 #include <stdbool.h>
 
-#define DUMP_DATA_VERSION 1
+/*
+ * DUMP_DATA_VERSION 1:
+ *     MCD_TEXT:PA_STRING => (char **)
+ *
+ * DUMP_DATA_VERSION 2:
+ *     MCD_TEXT:PA_STRING => (char *)
+ */
+#define DUMP_DATA_VERSION 2
 
 #define DUMP_DATA_MONITOR_ENV "MINICOREDUMPER_MONITOR"
 
