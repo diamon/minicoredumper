@@ -45,6 +45,7 @@ static int print_fmt_token(FILE *ft, struct mcd_dump_data *dd, int fmt_offset,
 	ret = asprintf(&d_str, token, *(t)data_ptr); break
 
 	struct dump_data_elem *elem;
+	int no_directives = 0;
 	char *d_str = NULL;
 	void *data_ptr;
 	char *token;
@@ -59,6 +60,7 @@ static int print_fmt_token(FILE *ft, struct mcd_dump_data *dd, int fmt_offset,
 		elem = NULL;
 		data_ptr = NULL;
 		type = PA_LAST;
+		no_directives = 1;
 	} else if (es_index >= (int)dd->es_n) {
 		/* no variable available, write raw text */
 		d_str = strndup(dd->fmt + fmt_offset, len);
@@ -96,7 +98,10 @@ static int print_fmt_token(FILE *ft, struct mcd_dump_data *dd, int fmt_offset,
 	case (PA_DOUBLE | PA_FLAG_LONG_DOUBLE):
 		ASPRINTF_CASE(long double *);
 	default:
-		ret = asprintf(&d_str, "%s", token);
+		if (no_directives)
+			ret = asprintf(&d_str, token);
+		else
+			ret = asprintf(&d_str, "%s", token);
 		break;
 	}
 

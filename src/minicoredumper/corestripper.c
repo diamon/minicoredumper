@@ -2033,6 +2033,7 @@ static int print_fmt_token(FILE *ft, struct dump_info *di,
 #define ASPRINTF_CASE(t) \
 	ret = asprintf(&d_str, token, *(t)data_ptr); break
 
+	int no_directives = 0;
 	char *data_str = NULL;
 	void *data_ptr = NULL;
 	char *d_str = NULL;
@@ -2048,6 +2049,7 @@ static int print_fmt_token(FILE *ft, struct dump_info *di,
 		/* no directives in this token */
 		data_ptr = NULL;
 		fmt_type = PA_LAST;
+		no_directives = 1;
 	} else if (es_index >= n) {
 		/* no variable available, write raw text */
 		d_str = strndup(fmt_string + fmt_offset, len);
@@ -2106,7 +2108,10 @@ static int print_fmt_token(FILE *ft, struct dump_info *di,
 	case (PA_DOUBLE | PA_FLAG_LONG_DOUBLE):
 		ASPRINTF_CASE(long double *);
 	default:
-		ret = asprintf(&d_str, "%s", token);
+		if (no_directives)
+			ret = asprintf(&d_str, token);
+		else
+			ret = asprintf(&d_str, "%s", token);
 		break;
 	}
 
