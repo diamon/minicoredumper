@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 Ericsson AB
+ * Copyright (c) 2012-2016 Ericsson AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -80,6 +80,12 @@ extern int mcd_dump_data_dbus_start(void);
  */
 extern void mcd_dump_data_dbus_stop(void);
 
+#ifdef __GNUC__
+#define ATTR_FMT(si, ftc) __attribute__ ((format (scanf, si, ftc)))
+#else
+#define ATTR_FMT(si, ftc)
+#endif
+
 /*
  * mcd_dump_data_register_text - Register text data to be dumped.
  * The data will not be explicitly stored in the core file.
@@ -100,7 +106,8 @@ extern void mcd_dump_data_dbus_stop(void);
 extern int mcd_dump_data_register_text(const char *ident,
 				       unsigned long dump_scope,
 				       mcd_dump_data_t *save_ptr,
-				       const char *fmt, ...);
+				       const char *fmt, ...)
+ATTR_FMT(4, 5);
 
 /*
  * mcd_vdump_data_register_text - Register text data to be dumped.
@@ -123,7 +130,8 @@ extern int mcd_vdump_data_register_text(const char *ident,
 					unsigned long dump_scope,
 					mcd_dump_data_t *save_ptr,
 					const char *fmt,
-					va_list ap);
+					va_list ap)
+ATTR_FMT(4, 0);
 
 /*
  * mcd_dump_data_register_bin - Register binary data to be dumped.
