@@ -212,29 +212,89 @@ static GElf_Off get_last_offset(Elf *e, int fd, size_t strtab_ndx,
 	return last_offset;
 }
 
-static int do_add_dump_list(struct dump_info *di, struct dumplist_note *note,
-			    size_t size)
+static void *set_desc(int elfclass, void *desc, off64_t start, off64_t len)
 {
-	GElf_Off store_offset;
+	if (elfclass == ELFCLASS32) {
+		uint32_t *ptr32 = desc;
+
+		*ptr32 = (uint32_t)start;
+		ptr32++;
+		*ptr32 = (uint32_t)len;
+		ptr32++;
+
+		return ptr32;
+	} else {
+		uint64_t *ptr64 = desc;
+
+		*ptr64 = start;
+		ptr64++;
+		*ptr64 = len;
+		ptr64++;
+
+		return ptr64;
+	}
+}
+
+static size_t get_desc_item_size(int elfclass)
+{
+	if (elfclass == ELFCLASS32)
+		return (sizeof(uint32_t) * 2);
+	else
+		return (sizeof(uint64_t) * 2);
+}
+
+int add_dump_list(int core_fd, size_t *core_size,
+		  struct core_data *dump_list, off64_t *dump_offset)
+{
+	struct dumplist_note *note;
+	struct core_data *cur;
 	GElf_Off last_offset;
 	Elf_Scn *strtab_scn;
 	size_t strtab_ndx;
+	size_t note_size;
 	int has_sections;
 	GElf_Ehdr ehdr;
 	GElf_Shdr shdr;
+	int count = 0;
+	char *desc;
 	int ret;
 	Elf *e;
 	int fd;
 
 	/* INITIAL SETUP */
 
-	lseek64(di->elf_fd, 0, SEEK_CUR);
+	lseek64(core_fd, 0, SEEK_CUR);
 
-	e = elf_begin(di->elf_fd, ELF_C_RDWR, NULL);
+	e = elf_begin(core_fd, ELF_C_RDWR, NULL);
 	if (!e)
 		return -1;
 
 	elf_flagelf(e, ELF_C_SET, ELF_F_LAYOUT);
+
+	for (cur = dump_list; cur; cur = cur->next) {
+                if (cur->end == cur->start)
+			continue;
+		count++;
+	}
+
+	note_size = sizeof(struct dumplist_note) +
+		    (get_desc_item_size(gelf_getclass(e)) * count);
+
+	note = malloc(note_size);
+	if (!note)
+		return -1;
+
+	memcpy(note, &note_template, sizeof(note_template));
+
+	desc = &note->desc[0];
+	for (cur = dump_list; cur; cur = cur->next) {
+                if (cur->end == cur->start)
+			continue;
+		desc = set_desc(gelf_getclass(e), desc, cur->mem_start,
+				cur->end - cur->start);
+        }
+
+	note->nhdr.n_descsz = get_desc_item_size(gelf_getclass(e)) * count;
 
 	/* GET STRING INDEX */
 
@@ -248,9 +308,9 @@ static int do_add_dump_list(struct dump_info *di, struct dumplist_note *note,
 
 	last_offset = get_last_offset(e, fd, strtab_ndx, &has_sections);
 	if (last_offset == 0)
-		last_offset = di->core_file_size;
+		last_offset = *core_size;
 
-	store_offset = last_offset;
+	*dump_offset = last_offset;
 
 	/* READ IN OR CREATE SHSTRTAB SECTION */
 
@@ -293,9 +353,9 @@ static int do_add_dump_list(struct dump_info *di, struct dumplist_note *note,
 
 	/* ADD DUMP SECTION */
 
-	if (add_dump_section(e, strtab_scn, last_offset, note, size) != 0)
+	if (add_dump_section(e, strtab_scn, last_offset, note, note_size) != 0)
 		return -1;
-	last_offset += size;
+	last_offset += note_size;
 
 	/* UPDATE STRING TABLE SHDR */
 
@@ -331,82 +391,9 @@ static int do_add_dump_list(struct dump_info *di, struct dumplist_note *note,
 
 	/* ADD NEW SECTIONS (AND HEADERS) TO CORE DATA */
 
-	di->core_file_size = last_offset;
-
-	add_core_data(di, store_offset, last_offset - store_offset,
-		      di->elf_fd, store_offset);
-
-	return 0;
-}
-
-static void *set_desc(int elfclass, void *desc, off64_t start, off64_t len)
-{
-	if (elfclass == ELFCLASS32) {
-		uint32_t *ptr32 = desc;
-
-		*ptr32 = (uint32_t)start;
-		ptr32++;
-		*ptr32 = (uint32_t)len;
-		ptr32++;
-
-		return ptr32;
-	} else {
-		uint64_t *ptr64 = desc;
-
-		*ptr64 = start;
-		ptr64++;
-		*ptr64 = len;
-		ptr64++;
-
-		return ptr64;
-	}
-}
-
-static size_t get_desc_item_size(int elfclass)
-{
-	if (elfclass == ELFCLASS32)
-		return (sizeof(uint32_t) * 2);
-	else
-		return (sizeof(uint64_t) * 2);
-}
-
-int add_dump_list(struct dump_info *di)
-{
-	struct dumplist_note *note;
-	struct core_data *cur;
-	size_t note_size;
-	int count = 0;
-	char *desc;
-	int ret;
-
-	for (cur = di->core_file; cur; cur = cur->next) {
-                if (cur->end == cur->start)
-			continue;
-		count++;
-	}
-
-	note_size = sizeof(struct dumplist_note) +
-		    (get_desc_item_size(di->elfclass) * count);
-
-	note = malloc(note_size);
-	if (!note)
-		return -1;
-
-	memcpy(note, &note_template, sizeof(note_template));
-
-	desc = &note->desc[0];
-	for (cur = di->core_file; cur; cur = cur->next) {
-                if (cur->end == cur->start)
-			continue;
-		desc = set_desc(di->elfclass, desc, cur->mem_start,
-				cur->end - cur->start);
-        }
-
-	note->nhdr.n_descsz = get_desc_item_size(di->elfclass) * count;
-
-	ret = do_add_dump_list(di, note, note_size);
+	*core_size = last_offset;
 
 	free(note);
 
-	return ret;
+	return 0;
 }

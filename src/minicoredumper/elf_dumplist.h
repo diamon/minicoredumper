@@ -27,8 +27,9 @@
 #ifndef ELF_DUMPLIST_H
 #define ELF_DUMPLIST_H
 
-struct dump_info;
+struct core_data;
 
-extern int add_dump_list(struct dump_info *di);
+extern int add_dump_list(int core_fd, size_t *core_size,
+			 struct core_data *dump_list, off64_t *dump_offset);
 
 #endif /* ELF_DUMPLIST_H */

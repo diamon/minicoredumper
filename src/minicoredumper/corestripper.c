@@ -59,6 +59,10 @@
 /* /BASEDIR/IMAGE.TIMESTAMP.PID */
 #define CORE_DIR_FMT "%s/%s.%s.%i"
 
+#if _ELFUTILS_PREREQ(0, 167)
+#define SUPPORT_LIBELF_MODIFY
+#endif
+
 extern int start_dbus_gloop(struct dump_info *di, char *app_name);
 
 static struct dump_info *global_di;
@@ -2025,7 +2029,13 @@ static int alloc_remote_string(struct dump_info *di, unsigned long addr,
 #undef REMOTE_STRING_MAX
 }
 
-static int print_fmt_token(FILE *ft, struct dump_info *di,
+struct remote_data_callbacks {
+	void *(*setup_data)(struct dump_data_elem *, void *);
+	void (*cleanup_data)(void *);
+	void *cbdata;
+};
+
+static int print_fmt_token(FILE *ft, struct remote_data_callbacks *cb,
 			   const char *fmt_string, int n,
 			   struct dump_data_elem *es_ptr, int fmt_offset,
 			   int len, int es_index)
@@ -2036,7 +2046,6 @@ static int print_fmt_token(FILE *ft, struct dump_info *di,
 	ret = asprintf(&d_str, token, (t)data_ptr); break
 
 	int no_directives = 0;
-	char *data_str = NULL;
 	void *data_ptr = NULL;
 	char *d_str = NULL;
 	int fmt_type;
@@ -2049,7 +2058,6 @@ static int print_fmt_token(FILE *ft, struct dump_info *di,
 
 	if (es_index == -1) {
 		/* no directives in this token */
-		data_ptr = NULL;
 		fmt_type = PA_LAST;
 		no_directives = 1;
 	} else if (es_index >= n) {
@@ -2066,14 +2074,12 @@ static int print_fmt_token(FILE *ft, struct dump_info *di,
 			d_str = strndup(fmt_string + fmt_offset, len);
 			goto out;
 		} else {
-			data_ptr = malloc(elem->u.length);
+			if (cb && cb->setup_data)
+				data_ptr = cb->setup_data(elem, cb->cbdata);
+			else
+				data_ptr = elem->data_ptr;
 			if (!data_ptr)
 				goto out_err;
-
-			if (read_remote(di, (unsigned long)elem->data_ptr,
-					data_ptr, elem->u.length) != 0) {
-				goto out_err;
-			}
 
 			fmt_type = elem->fmt_type;
 		}
@@ -2124,13 +2130,34 @@ out:
 out_err:
 	if (d_str)
 		free(d_str);
-	if (data_ptr)
-		free(data_ptr);
-	if (data_str)
-		free(data_str);
+	if (data_ptr && cb && cb->cleanup_data)
+		cb->cleanup_data(data_ptr);
 
 	return err;
 #undef ASPRINTF_CASE
+}
+
+static void *do_setup_data(struct dump_data_elem *elem, void *data)
+{
+	struct dump_info *di = data;
+	void *data_ptr;
+
+	data_ptr = malloc(elem->u.length);
+	if (!data_ptr)
+		return NULL;
+
+	if (read_remote(di, (unsigned long)elem->data_ptr,
+			data_ptr, elem->u.length) != 0) {
+		free(data_ptr);
+		return NULL;
+	}
+
+	return data_ptr;
+}
+
+static void do_cleanup_data(void *data_ptr)
+{
+	free(data_ptr);
 }
 
 static void free_dump_data_content(struct mcd_dump_data *dd)
@@ -2354,8 +2381,8 @@ out:
 	return ret;
 }
 
-static int dump_data_file_text(struct dump_info *di, struct mcd_dump_data *dd,
-			       FILE *file)
+static int dump_data_file_text(struct mcd_dump_data *dd, FILE *file,
+			       struct remote_data_callbacks *cb)
 {
 	const char *fmt_string = dd->fmt;
 	int es_index;
@@ -2380,7 +2407,7 @@ static int dump_data_file_text(struct dump_info *di, struct mcd_dump_data *dd,
 
 		} else if (fmt_string[i] == '%') {
 			/* print token up to this directive */
-			print_fmt_token(file, di, fmt_string, dd->es_n, dd->es,
+			print_fmt_token(file, cb, fmt_string, dd->es_n, dd->es,
 					start, i - start, es_index);
 			es_index++;
 			start = i;
@@ -2388,7 +2415,7 @@ static int dump_data_file_text(struct dump_info *di, struct mcd_dump_data *dd,
 	}
 
 	/* print token to the end of format string */
-	print_fmt_token(file, di, fmt_string, dd->es_n, dd->es, start,
+	print_fmt_token(file, cb, fmt_string, dd->es_n, dd->es, start,
 			len - start, es_index);
 
 	return 0;
@@ -2421,10 +2448,16 @@ static int dump_data_content_file(struct dump_info *di,
 	if (!file)
 		return ret;
 
-	if (dd->type == MCD_BIN)
+	if (dd->type == MCD_BIN) {
 		ret = dump_data_file_bin(di, dd, file);
-	else
-		ret = dump_data_file_text(di, dd, file);
+	} else {
+		struct remote_data_callbacks cb = {
+			.setup_data = do_setup_data,
+			.cleanup_data = do_cleanup_data,
+			.cbdata = di,
+		};
+		ret = dump_data_file_text(dd, file, &cb);
+	}
 
 	fclose(file);
 
@@ -3191,6 +3224,26 @@ static void setup_public_subdir(const char *base, const char *subdir)
 	free(name);
 }
 
+#ifdef SUPPORT_LIBELF_MODIFY
+static int add_dumplist_section(struct dump_info *di)
+{
+	size_t core_size = di->core_file_size;
+	off64_t dump_offset;
+
+	if (add_dump_list(di->elf_fd, &core_size, di->core_file,
+			  &dump_offset) != 0) {
+		return -1;
+	}
+
+	di->core_file_size = core_size;
+
+	add_core_data(di, dump_offset, core_size - dump_offset,
+		      di->elf_fd, dump_offset);
+
+	return 0;
+}
+#endif
+
 /*
  * We want:
  * # cat /proc/sys/kernel/core_pattern
@@ -3272,9 +3325,9 @@ int main(int argc, char **argv)
 	/* dump registered application data */
 	dyn_dump(&di);
 
-#if _ELFUTILS_PREREQ(0, 167)
+#ifdef SUPPORT_LIBELF_MODIFY
 	/* add a new elf section containing the dump list */
-	if (add_dump_list(&di) != 0)
+	if (add_dumplist_section(&di) != 0)
 		info("WARNING: failed to add dump list");
 #else
 	info("WARNING: libelf too old to support dump list");
