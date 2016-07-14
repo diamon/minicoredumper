@@ -40,19 +40,22 @@ struct mcd_dump_data;
 typedef struct mcd_dump_data *mcd_dump_data_t;
 
 /*
- * enum mcd_dump_data_flags - Describes how data is read.
+ * enum mcd_dump_data_flags - Describes how data is handled.
  *
  * @MCD_DATA_PTR_DIRECT: Follow the pointer directly and read data.
  * @MCD_DATA_PTR_INDIRECT: Follow the pointer to another pointer and then
  *                         read data.
+ * @MCD_DATA_NODUMP: Do not dump actual data. (Only dump offset/size
+ *                   information, if applicable.)
  * @MCD_LENGTH_DIRECT: Read the length directly.
  * @MCD_LENGTH_INDIRECT: Follow a pointer to the length.
  */
 enum mcd_dump_data_flags {
-	MCD_DATA_PTR_DIRECT = 1,
-	MCD_DATA_PTR_INDIRECT = 2,
-	MCD_LENGTH_DIRECT = 4,
-	MCD_LENGTH_INDIRECT = 8,
+	MCD_DATA_PTR_DIRECT	= 1 << 0,
+	MCD_DATA_PTR_INDIRECT	= 1 << 1,
+	MCD_LENGTH_DIRECT	= 1 << 2,
+	MCD_LENGTH_INDIRECT	= 1 << 3,
+	MCD_DATA_NODUMP		= 1 << 4,
 };
 
 #ifdef __cplusplus

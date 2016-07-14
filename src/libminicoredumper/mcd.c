@@ -96,6 +96,10 @@ int dump_data_walk(char *path, unsigned long dump_scope)
 		if (!iter->ident)
 			continue;
 
+		/* ignore data flagged for not dumping */
+		if ((iter->es->flags & MCD_DATA_NODUMP))
+			continue;
+
 		/* ignore data if beyond scope */
 		if (iter->dump_scope > dump_scope)
 			continue;

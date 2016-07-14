@@ -2182,7 +2182,8 @@ static int dump_data_content_core(struct dump_info *di,
 		}
 
 		/* dump data to core */
-		dump_vma(di, addr, length, 0, "data");
+		if (!(es->flags & MCD_DATA_NODUMP))
+			dump_vma(di, addr, length, 0, "data");
 	}
 
 	return 0;
@@ -2222,6 +2223,7 @@ static int dump_data_file_bin(struct dump_info *di, struct mcd_dump_data *dd,
 	struct dump_data_elem *es = &dd->es[0];
 	unsigned long addr_ind;
 	unsigned long addr;
+	char type = 'D';
 	off64_t core_pos;
 	size_t length;
 	char *buf;
@@ -2272,11 +2274,16 @@ static int dump_data_file_bin(struct dump_info *di, struct mcd_dump_data *dd,
 	}
 
 	/* dump data */
-	fwrite(buf, length, 1, file);
+	if ((es->flags & MCD_DATA_NODUMP))
+		type = 'N';
+	else
+		fwrite(buf, length, 1, file);
 
 	core_pos = get_core_pos(di, addr);
-	if (core_pos != (off64_t)-1)
-		add_symbol_map_entry(di, core_pos, length, 'D', dd->ident);
+	if (core_pos != (off64_t)-1) {
+		add_symbol_map_entry(di, core_pos, length,
+				     type, dd->ident);
+	}
 out:
 	free(buf);
 	return ret;
@@ -2285,6 +2292,7 @@ out:
 static int dump_data_content_file(struct dump_info *di,
 				  struct mcd_dump_data *dd)
 {
+	struct stat sb;
 	char *tmp_path;
 	FILE *file;
 	int len;
@@ -2304,10 +2312,8 @@ static int dump_data_content_file(struct dump_info *di,
 	snprintf(tmp_path, len, "%s/dumps/%s", di->dst_dir, dd->ident);
 	file = fopen(tmp_path, "a");
 	ret = errno;
-	free(tmp_path);
-
 	if (!file)
-		return ret;
+		goto out;
 
 	if (dd->type == MCD_BIN) {
 		ret = dump_data_file_bin(di, dd, file);
@@ -2322,6 +2328,13 @@ static int dump_data_content_file(struct dump_info *di,
 
 	fclose(file);
 
+	/* delete file if it is empty */
+	if (stat(tmp_path, &sb) == 0) {
+		if (sb.st_size == 0)
+			unlink(tmp_path);
+	}
+out:
+	free(tmp_path);
 	return ret;
 }
 
