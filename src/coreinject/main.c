@@ -30,8 +30,11 @@
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#include "common.h"
 
 /*
  * This program injects binary data dumped by the minicoredumper into a
@@ -58,6 +61,7 @@ struct ident_data {
 	const char *ident;
 	unsigned long dump_offset;
 	unsigned long core_offset;
+	unsigned long mem_offset;
 	unsigned long size;
 };
 
@@ -71,6 +75,24 @@ struct prog_option {
 
 	struct prog_option *next;
 };
+
+static struct core_data *dump_list;
+
+static void add_dump_item(unsigned long mem_offset, unsigned long size)
+{
+	struct core_data *cd;
+
+	cd = calloc(1, sizeof(*cd));
+	if (!cd)
+		return;
+
+	cd->mem_start = mem_offset;
+	cd->start = 0;
+	cd->end = size;
+	cd->next = dump_list;
+
+	dump_list = cd;
+}
 
 static int write_core(FILE *f_core, FILE *f_dump, struct ident_data *d,
 		      int direct)
@@ -122,6 +144,8 @@ static int write_core(FILE *f_core, FILE *f_dump, struct ident_data *d,
 		goto out;
 	}
 
+	add_dump_item(d->mem_offset, d->size);
+
 	printf("injected: %s, %ld bytes, %s\n", d->ident, d->size,
 	       direct ? "direct" : "indirect");
 
@@ -138,7 +162,8 @@ static int get_ident_data(const char *ident, FILE *f_symmap,
 			  struct ident_data *indirect)
 {
 	struct ident_data *d;
-	unsigned long offset;
+	unsigned long mem;
+	off64_t offset;
 	char line[128];
 	size_t size;
 	char type;
@@ -163,19 +188,21 @@ static int get_ident_data(const char *ident, FILE *f_symmap,
 			*p = 0;
 
 		/* ignore invalid lines */
-		if (sscanf(line, "%lx %zx %c ", &offset, &size, &type) != 3)
+		if (sscanf(line, "%" PRIx64 " %lx %zx %c ", &offset, &mem,
+			   &size, &type) != 4) {
 			continue;
+		}
 
 		/* locate ident name */
 		p = line;
-		for (i = 0; i < 3; i++) {
+		for (i = 0; i < 4; i++) {
 			p = strchr(p, ' ');
 			if (!p)
 				break;
 			p++;
 		}
 		/* ignore invalid lines */
-		if (i != 3)
+		if (i != 4)
 			continue;
 
 		/* check if this is the ident we want */
@@ -193,6 +220,7 @@ static int get_ident_data(const char *ident, FILE *f_symmap,
 
 		/* last entry wins in case of duplicates */
 		d->core_offset = offset;
+		d->mem_offset = mem;
 		d->size = size;
 		d->ident = ident;
 	}
@@ -462,6 +490,27 @@ out:
 	if (f_symmap)
 		fclose(f_symmap);
 	free_options(options);
+
+	if (err == 0) {
+		struct stat sb;
+		size_t size;
+		int fd;
+
+		fd = open(core_filename, O_RDWR);
+		if (fd >= 0) {
+			if (fstat(fd, &sb) == 0) {
+				size = sb.st_size;
+				add_dump_list(fd, &size, dump_list, NULL);
+			}
+			close(fd);
+		}
+	}
+
+	while (dump_list) {
+		struct core_data *cd = dump_list;
+		dump_list = cd->next;
+		free(cd);
+	}
 
 	return err;
 }

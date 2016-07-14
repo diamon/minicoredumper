@@ -2190,7 +2190,8 @@ static int dump_data_content_core(struct dump_info *di,
 }
 
 static int add_symbol_map_entry(struct dump_info *di, off64_t core_pos,
-				size_t size, char type, const char *ident)
+				unsigned long mem_pos, size_t size, char type,
+				const char *ident)
 {
 	char *tmp_path;
 	size_t len;
@@ -2209,7 +2210,8 @@ static int add_symbol_map_entry(struct dump_info *di, off64_t core_pos,
 	if (!f)
 		return ret;
 
-	fprintf(f, "%lx %zx %c %s\n", core_pos, size, type, ident);
+	fprintf(f, "%" PRIx64 " %lx %zx %c %s\n",
+		core_pos, mem_pos, size, type, ident);
 
 	fclose(f);
 
@@ -2267,7 +2269,7 @@ static int dump_data_file_bin(struct dump_info *di, struct mcd_dump_data *dd,
 
 		core_pos = get_core_pos(di, addr_ind);
 		if (core_pos != (off64_t)-1) {
-			add_symbol_map_entry(di, core_pos,
+			add_symbol_map_entry(di, core_pos, addr_ind,
 					     sizeof(unsigned long), 'I',
 					     dd->ident);
 		}
@@ -2281,7 +2283,7 @@ static int dump_data_file_bin(struct dump_info *di, struct mcd_dump_data *dd,
 
 	core_pos = get_core_pos(di, addr);
 	if (core_pos != (off64_t)-1) {
-		add_symbol_map_entry(di, core_pos, length,
+		add_symbol_map_entry(di, core_pos, addr, length,
 				     type, dd->ident);
 	}
 out:
