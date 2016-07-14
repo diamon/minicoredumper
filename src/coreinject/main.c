@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 Ericsson AB
+ * Copyright (c) 2012-2016 Ericsson AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,14 +47,14 @@ static void usage(const char *argv0)
 		argv0);
 }
 
-struct symbol_data {
-	const char *name;
+struct ident_data {
+	const char *ident;
 	long dump_offset;
 	long core_offset;
 	long size;
 };
 
-static int write_core(FILE *f_core, FILE *f_dump, struct symbol_data *d,
+static int write_core(FILE *f_core, FILE *f_dump, struct ident_data *d,
 		      int direct)
 {
 	char *buf = NULL;
@@ -63,16 +63,16 @@ static int write_core(FILE *f_core, FILE *f_dump, struct symbol_data *d,
 	/* seek in core */
 	if (fseek(f_core, d->core_offset, SEEK_SET) != 0) {
 		fprintf(stderr, "error: failed to seek to position 0x%lx for "
-				"symbol %s in core (%s)\n",
-			d->core_offset, d->name, strerror(errno));
+				"ident %s in core (%s)\n",
+			d->core_offset, d->ident, strerror(errno));
 		goto out;
 	}
 
 	/* seek in dump */
 	if (fseek(f_dump, d->dump_offset, SEEK_SET) != 0) {
 		fprintf(stderr, "error: failed to seek to position 0x%lx for "
-				"symbol %s in dump (%s)\n",
-			d->dump_offset, d->name, strerror(errno));
+				"ident %s in dump (%s)\n",
+			d->dump_offset, d->ident, strerror(errno));
 		goto out;
 	}
 
@@ -98,7 +98,7 @@ static int write_core(FILE *f_core, FILE *f_dump, struct symbol_data *d,
 		goto out;
 	}
 
-	printf("injected: %s, %ld bytes, %s\n", d->name, d->size,
+	printf("injected: %s, %ld bytes, %s\n", d->ident, d->size,
 	       direct ? "direct" : "indirect");
 
 	err = 0;
@@ -109,11 +109,11 @@ out:
 	return err;
 }
 
-static int get_symbol_data(const char *symname, FILE *f_symbol,
-			   struct symbol_data *direct,
-			   struct symbol_data *indirect)
+static int get_ident_data(const char *ident, FILE *f_symmap,
+			  struct ident_data *direct,
+			  struct ident_data *indirect)
 {
-	struct symbol_data *d;
+	struct ident_data *d;
 	unsigned long offset;
 	char line[128];
 	size_t size;
@@ -124,15 +124,15 @@ static int get_symbol_data(const char *symname, FILE *f_symbol,
 	memset(direct, 0, sizeof(*direct));
 	memset(indirect, 0, sizeof(*indirect));
 
-	/* Search the full symbol map to find the symbol information for
-	 * the specified symbol. If the number of symbols in a symbol map
+	/* Search the full symbol map to find the ident information for
+	 * the specified ident. If the number of idents in a symbol map
 	 * become large and the number of dump files becomes large, then
 	 * it would be more efficient to parse the system map once,
-	 * allocating symbol information along the way. */
+	 * allocating ident information along the way. */
 
-	rewind(f_symbol);
+	rewind(f_symmap);
 
-	while (fgets(line, sizeof(line), f_symbol)) {
+	while (fgets(line, sizeof(line), f_symmap)) {
 		/* strip newline */
 		p = strchr(line, '\n');
 		if (p)
@@ -142,7 +142,7 @@ static int get_symbol_data(const char *symname, FILE *f_symbol,
 		if (sscanf(line, "%lx %zx %c ", &offset, &size, &type) != 3)
 			continue;
 
-		/* locate symbol name */
+		/* locate ident name */
 		p = line;
 		for (i = 0; i < 3; i++) {
 			p = strchr(p, ' ');
@@ -154,8 +154,8 @@ static int get_symbol_data(const char *symname, FILE *f_symbol,
 		if (i != 3)
 			continue;
 
-		/* check if this is the symbol we want */
-		if (strcmp(symname, p) != 0)
+		/* check if this is the ident we want */
+		if (strcmp(ident, p) != 0)
 			continue;
 
 		if (type == 'D') {
@@ -170,7 +170,7 @@ static int get_symbol_data(const char *symname, FILE *f_symbol,
 		/* last entry wins in case of duplicates */
 		d->core_offset = offset;
 		d->size = size;
-		d->name = symname;
+		d->ident = ident;
 	}
 
 	/* If indirect data exists, it is at the head of the dump file.
@@ -181,26 +181,26 @@ static int get_symbol_data(const char *symname, FILE *f_symbol,
 	return 0;
 }
 
-static int inject_data(FILE *f_core, FILE *f_symbol, const char *b_fname)
+static int inject_data(FILE *f_core, FILE *f_symmap, const char *b_fname)
 {
-	struct symbol_data indirect;
-	struct symbol_data direct;
-	const char *symname;
+	struct ident_data indirect;
+	struct ident_data direct;
+	const char *ident;
 	FILE *f_dump;
 	int err = 0;
 	char *p;
 
-	/* extract symbol name from file path */
+	/* extract ident name from file path */
 	p = strrchr(b_fname, '/');
 	if (p)
-		symname = p + 1;
+		ident = p + 1;
 	else
-		symname = b_fname;
+		ident = b_fname;
 
 	/* get offsets/sizes from symbol map */
-	if (get_symbol_data(symname, f_symbol, &direct, &indirect) != 0) {
-		fprintf(stderr, "error: unable to find symbol %s in map\n",
-			symname);
+	if (get_ident_data(ident, f_symmap, &direct, &indirect) != 0) {
+		fprintf(stderr, "error: unable to find ident %s in map\n",
+			ident);
 		return -1;
 	}
 
@@ -227,8 +227,8 @@ static int inject_data(FILE *f_core, FILE *f_symbol, const char *b_fname)
 
 int main(int argc, char *argv[])
 {
+	FILE *f_symmap = NULL;
 	FILE *f_core = NULL;
-	FILE *f_symbols = NULL;
 	struct stat s;
 	int err = 1;
 	int i;
@@ -254,8 +254,8 @@ int main(int argc, char *argv[])
 	}
 
 	/* open the symbol map for reading */
-	f_symbols = fopen(argv[2], "r");
-	if (!f_symbols) {
+	f_symmap = fopen(argv[2], "r");
+	if (!f_symmap) {
 		fprintf(stderr, "error: failed to open %s (%s)\n", argv[2],
 			strerror(errno));
 		goto out;
@@ -265,14 +265,14 @@ int main(int argc, char *argv[])
 
 	/* try to add binary dumps (continuing on error) */
 	for (i = 3; i < argc; i++) {
-		if (inject_data(f_core, f_symbols, argv[i]) != 0)
+		if (inject_data(f_core, f_symmap, argv[i]) != 0)
 			err |= 1;
 	}
 out:
 	if (f_core)
 		fclose(f_core);
-	if (f_symbols)
-		fclose(f_symbols);
+	if (f_symmap)
+		fclose(f_symmap);
 
 	return err;
 }
