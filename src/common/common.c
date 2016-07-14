@@ -218,3 +218,23 @@ int copy_file(const char *dest, const char *src)
 
 	return 0;
 }
+
+int invalid_ident(const char *ident)
+{
+	if (!ident)
+		return 0;
+
+	if (strcmp(ident, "") == 0)
+		return 1;
+
+	if (strcmp(ident, ".") == 0)
+		return 1;
+
+	if (strcmp(ident, "..") == 0)
+		return 1;
+
+	if (strchr(ident, '/'))
+		return 1;
+
+	return 0;
+}

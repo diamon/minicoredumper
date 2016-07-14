@@ -100,6 +100,10 @@ int dump_data_walk(char *path, unsigned long dump_scope)
 		if (iter->dump_scope > dump_scope)
 			continue;
 
+		/* verify ident */
+		if (invalid_ident(iter->ident))
+			continue;
+
 		len = strlen(tmp_path) + strlen("/") + strlen(iter->ident) + 1;
 
 		/* allocate, open, and free filename */
@@ -454,6 +458,11 @@ int mcd_vdump_data_register_text(const char *ident, unsigned long dump_scope,
 		goto out_err;
 	}
 
+	if (invalid_ident(ident)) {
+		err = EINVAL;
+		goto out_err;
+	}
+
 	/* max count is if fmt has _only_ directives in it */
 	maxcnt = strlen(fmt);
 
@@ -543,6 +552,11 @@ int mcd_dump_data_register_bin(const char *ident, unsigned long dump_scope,
 	int err = ENOMEM;
 
 	if (!data_ptr || data_size == 0) {
+		err = EINVAL;
+		goto out_err;
+	}
+
+	if (invalid_ident(ident)) {
 		err = EINVAL;
 		goto out_err;
 	}

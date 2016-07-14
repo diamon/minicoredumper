@@ -2091,6 +2091,15 @@ static int alloc_remote_data_content(struct dump_info *di, unsigned long addr,
 					  &dd->ident);
 		if (ret != 0)
 			return ret;
+
+		/* abort if invalid ident */
+		if (invalid_ident(dd->ident)) {
+			/* clear fields so there is no free() attempt */
+			dd->fmt = NULL;
+			dd->es = NULL;
+			free_dump_data_content(dd);
+			return -1;
+		}
 	}
 
 	if (dd->fmt) {

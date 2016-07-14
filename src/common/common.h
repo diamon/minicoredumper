@@ -55,6 +55,8 @@ extern int dump_data_file_text(struct mcd_dump_data *dd, FILE *file,
 
 extern int copy_file(const char *dest, const char *src);
 
+extern int invalid_ident(const char *ident);
+
 extern int add_dump_list(int core_fd, size_t *core_size,
 			 struct core_data *dump_list, off64_t *dump_offset);
 
