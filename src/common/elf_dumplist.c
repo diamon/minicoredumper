@@ -31,7 +31,7 @@
 #include <libelf.h>
 #include <gelf.h>
 #include <sys/types.h>
-#include "corestripper.h"
+#include "common.h"
 
 #define NT_DUMPLIST 80
 

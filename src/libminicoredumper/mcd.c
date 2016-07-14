@@ -31,139 +31,13 @@
 #include <sys/inotify.h>
 
 #include "dump_data_private.h"
+#include "common.h"
 #include "minicoredumper.h"
 
 static pthread_mutex_t dump_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct mcd_dump_data *mcd_dump_data_head;
 int mcd_dump_data_version = DUMP_DATA_VERSION;
-
-static int print_fmt_token(FILE *ft, struct mcd_dump_data *dd, int fmt_offset,
-			   int len, int es_index)
-{
-#define ASPRINTF_CASE(t) \
-	ret = asprintf(&d_str, token, *(t)data_ptr); break
-#define ASPRINTF_CASE_NORESOLVE(t) \
-	ret = asprintf(&d_str, token, (t)data_ptr); break
-
-	struct dump_data_elem *elem;
-	int no_directives = 0;
-	char *d_str = NULL;
-	void *data_ptr;
-	char *token;
-	int type;
-	int ret;
-
-	if (len == 0)
-		return 0;
-
-	if (es_index == -1) {
-		/* no directives in this token */
-		elem = NULL;
-		data_ptr = NULL;
-		type = PA_LAST;
-		no_directives = 1;
-	} else if (es_index >= (int)dd->es_n) {
-		/* no variable available, write raw text */
-		d_str = strndup(dd->fmt + fmt_offset, len);
-		goto out;
-	} else {
-		/* token contains 1 directive */
-		elem = &dd->es[es_index];
-		data_ptr = elem->data_ptr;
-		type = elem->fmt_type;
-	}
-
-	token = strndup(dd->fmt + fmt_offset, len);
-	if (!token)
-		return -1;
-
-	switch (type) {
-	case PA_INT:
-		ASPRINTF_CASE(int *);
-	case PA_CHAR:
-		ASPRINTF_CASE(char *);
-	case PA_STRING:
-		ASPRINTF_CASE_NORESOLVE(char *);
-	case PA_POINTER:
-		ASPRINTF_CASE(void **);
-	case PA_FLOAT:
-		ASPRINTF_CASE(float *);
-	case PA_DOUBLE:
-		ASPRINTF_CASE(double *);
-	case (PA_INT | PA_FLAG_SHORT):
-		ASPRINTF_CASE(short *);
-	case (PA_INT | PA_FLAG_LONG):
-		ASPRINTF_CASE(long *);
-	case (PA_INT | PA_FLAG_LONG_LONG):
-		ASPRINTF_CASE(long long *);
-	case (PA_DOUBLE | PA_FLAG_LONG_DOUBLE):
-		ASPRINTF_CASE(long double *);
-	default:
-		if (no_directives)
-			ret = asprintf(&d_str, token);
-		else
-			ret = asprintf(&d_str, "%s", token);
-		break;
-	}
-
-	free(token);
-
-	if (ret < 0) {
-		if (d_str)
-			free(d_str);
-		return -1;
-	}
-out:
-	if (d_str) {
-		fwrite(d_str, 1, strlen(d_str), ft);
-		free(d_str);
-	}
-
-	return 0;
-#undef ASPRINTF_CASE
-}
-
-static int copy_file(const char *dest, const char *src)
-{
-	unsigned char c;
-	struct stat sb;
-	FILE *f_dest;
-	FILE *f_src;
-	int i;
-
-	if (stat(src, &sb) != 0)
-		return -1;
-
-	/* non-regular files ignored */
-	if ((sb.st_mode & S_IFMT) != S_IFREG)
-		return -1;
-
-	f_src = fopen(src, "r");
-	if (!f_src)
-		return -1;
-
-	f_dest = fopen(dest, "w");
-	if (!f_dest) {
-		fclose(f_src);
-		return -1;
-	}
-
-	while (1) {
-		i = fgetc(f_src);
-		if (i == EOF)
-			break;
-
-		c = (unsigned char)i;
-
-		fwrite(&c, 1, 1, f_dest);
-	}
-
-	fclose(f_src);
-	fclose(f_dest);
-
-	return 0;
-}
 
 static void dump_proc(char *path, int pid)
 {
@@ -195,16 +69,12 @@ int dump_data_walk(char *path, unsigned long dump_scope)
 	struct mcd_dump_data *iter;
 	char *tmp_path;
 	size_t length;
-	int es_index;
 	char *fname;
 	int err = 0;
 	void *data;
-	char *fmt;
-	int start;
 	FILE *ft;
 	int len;
 	int pid;
-	int i;
 
 	pid = getpid();
 
@@ -270,31 +140,7 @@ int dump_data_walk(char *path, unsigned long dump_scope)
 		}
 
 		/* handle text dump */
-
-		fmt = iter->fmt;
-		len = strlen(fmt);
-
-		/* we start es_index with -1 because the first token does
-		 * not have a directive in it (i.e. no element associated) */
-		es_index = -1;
-
-		start = 0;
-		for (i = 0; i < len; i++) {
-			if (fmt[i] == '%' && fmt[i + 1] == '%') {
-				/* skip escaped '%' */
-				i++;
-
-			} else if (fmt[i] == '%') {
-				/* print token up to this directive */
-				print_fmt_token(ft, iter, start,
-						i - start, es_index);
-				es_index++;
-				start = i;
-			}
-		}
-
-		/* print token to the end of format string */
-		print_fmt_token(ft, iter, start, len - start, es_index);
+		dump_data_file_text(iter, ft, NULL);
 
 		fclose(ft);
 	}

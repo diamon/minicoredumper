@@ -11,8 +11,8 @@ dist_man_MANS = minicoredumper.cfg.json.5 minicoredumper.recept.json.5 \
 		minicoredumper.1
 
 minicoredumper_SOURCES = corestripper.c corestripper.h \
-			 elf_dumplist.c elf_dumplist.h \
-			 prog_config.c prog_config.h
+			 prog_config.c prog_config.h \
+			 ../common/common.c ../common/elf_dumplist.c
 
 if USE_DBUS
 
@@ -32,5 +32,6 @@ minicoredumper_CFLAGS = -g -Wall -std=c99 -D_GNU_SOURCE $(MCD_WERROR) \
 			-D_LARGEFILE64_SOURCE $(dbus_CFLAGS) \
 			-I$(top_srcdir)/lib \
 			-I$(top_srcdir)/src/api \
+			-I$(top_srcdir)/src/common \
 			-I$(top_srcdir)/src/libminicoredumper \
 			$(libelf_CFLAGS)

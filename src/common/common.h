@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Ericsson AB
+ * Copyright (c) 2012-2016 Ericsson AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,12 +24,38 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef ELF_DUMPLIST_H
-#define ELF_DUMPLIST_H
+#ifndef __COMMON_H__
+#define __COMMON_H__
 
-struct core_data;
+#include <stdio.h>
+
+struct dump_data_elem;
+struct mcd_dump_data;
+
+struct core_data {
+	off64_t start;
+	off64_t end;
+
+	off64_t mem_start;
+	int mem_fd;
+
+	int blk_id;
+
+	struct core_data *next;
+};
+
+struct remote_data_callbacks {
+	void *(*setup_data)(struct dump_data_elem *, void *);
+	void (*cleanup_data)(void *);
+	void *cbdata;
+};
+
+extern int dump_data_file_text(struct mcd_dump_data *dd, FILE *file,
+			       struct remote_data_callbacks *cb);
+
+extern int copy_file(const char *dest, const char *src);
 
 extern int add_dump_list(int core_fd, size_t *core_size,
 			 struct core_data *dump_list, off64_t *dump_offset);
 
-#endif /* ELF_DUMPLIST_H */
+#endif /* __COMMON_H__ */

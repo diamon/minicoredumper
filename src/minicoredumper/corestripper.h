@@ -31,6 +31,8 @@
 #include <libelf.h>
 #include <gelf.h>
 
+struct core_data;
+
 /* dumpable vmas found in the core file */
 struct core_vma {
 	unsigned long start;
@@ -40,18 +42,6 @@ struct core_vma {
 	unsigned int flags;
 
 	struct core_vma *next;
-};
-
-struct core_data {
-	off64_t start;
-	off64_t end;
-
-	off64_t mem_start;
-	int mem_fd;
-
-	int blk_id;
-
-	struct core_data *next;
 };
 
 struct interesting_vma {

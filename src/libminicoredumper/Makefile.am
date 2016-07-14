@@ -14,7 +14,8 @@ EXTRA_DIST = minicoredumper.pc.in minicoredumper-uninstalled.pc.in
 
 lib_LTLIBRARIES = libminicoredumper.la
 
-libminicoredumper_la_SOURCES = mcd.c dump_data_private.h
+libminicoredumper_la_SOURCES = mcd.c dump_data_private.h \
+			       ../common/common.c ../common/common.h
 
 if USE_DBUS
 dbus_mcd.h: $(top_srcdir)/src/dbus/interface.xml
@@ -30,6 +31,7 @@ endif
 
 libminicoredumper_la_CFLAGS = -g -Wall -std=c99 -D_GNU_SOURCE $(MCD_WERROR) \
 			      $(dbus_CFLAGS) -I$(top_srcdir)/src/api \
+			      -I$(top_srcdir)/src/common \
 			      -DG_LOG_DOMAIN=\"minicoredumper\"
 libminicoredumper_la_LIBADD = @dbus_LIBS@
 include_HEADERS = $(top_srcdir)/src/api/minicoredumper.h
