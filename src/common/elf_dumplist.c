@@ -31,24 +31,12 @@
 #include <libelf.h>
 #include <gelf.h>
 #include <sys/types.h>
+
 #include "common.h"
 
 #define NT_DUMPLIST 80
-
-struct dumplist_note {
-	GElf_Nhdr nhdr;
-	char name[16];
-	char desc[];
-};
-
-static struct dumplist_note note_template = {
-	.nhdr = {
-		.n_namesz = 15,
-		.n_type = NT_DUMPLIST,
-	},
-	.name = { 'm', 'i', 'n', 'i', 'c', 'o', 'r', 'e',
-		  'd', 'u', 'm', 'p', 'e', 'r', 0 },
-};
+#define NT_OWNER "minicoredumper"
+#define NT_NAME ".note.minicoredumper.dumplist"
 
 static int append_strtab_name(Elf_Scn *strtab_scn, char *name_str,
 			      GElf_Word *name)
@@ -135,21 +123,37 @@ static int add_debug_section(Elf *e, Elf_Scn *strtab_scn, GElf_Off offset,
 	return 0;
 }
 
-static int add_dump_section(Elf *e, Elf_Scn *strtab_scn, GElf_Off offset,
-			    void *raw_data, GElf_Word size)
+static Elf_Scn *add_dump_section(Elf *e, Elf_Scn *strtab_scn)
 {
 	GElf_Shdr shdr;
 	GElf_Word name;
-	Elf_Data *data;
 	Elf_Scn *scn;
 
-	if (append_strtab_name(strtab_scn, ".note.minicoredumper.dumplist",
-			       &name) != 0) {
-		return -1;
-	}
+	if (append_strtab_name(strtab_scn, NT_NAME, &name) != 0)
+		return NULL;
 
 	scn = elf_newscn(e);
 	if (!scn)
+		return NULL;
+
+	if (gelf_getshdr(scn, &shdr) == NULL)
+		return NULL;
+
+	shdr.sh_name = name;
+	shdr.sh_type = SHT_NOTE;
+	shdr.sh_addralign = 4;
+
+	gelf_update_shdr(scn, &shdr);
+
+	return scn;
+}
+
+static int add_dump_data(Elf_Scn *scn, void *dump_data, GElf_Word size)
+{
+	GElf_Shdr shdr;
+	Elf_Data *data;
+
+	if (gelf_getshdr(scn, &shdr) == NULL)
 		return -1;
 
 	data = elf_newdata(scn);
@@ -157,32 +161,41 @@ static int add_dump_section(Elf *e, Elf_Scn *strtab_scn, GElf_Off offset,
 		return -1;
 
 	data->d_align = 4;
-	data->d_buf = raw_data;
+	data->d_off = shdr.sh_size;
+	data->d_buf = dump_data;
 	data->d_type = ELF_T_NHDR;
 	data->d_size = size;
 	data->d_version = EV_CURRENT;
 
-	if (gelf_getshdr(scn, &shdr) == NULL)
-		return -1;
-
-	shdr.sh_name = name;
-	shdr.sh_type = SHT_NOTE;
-	shdr.sh_size = size;
-	shdr.sh_offset = offset;
-	shdr.sh_addralign = 4;
+	shdr.sh_size += data->d_size;
 
 	gelf_update_shdr(scn, &shdr);
 
 	return 0;
 }
 
-static GElf_Off get_last_offset(Elf *e, int fd, size_t strtab_ndx,
-				int *has_sections)
+static GElf_Word update_section_offset(Elf_Scn *scn, GElf_Off offset)
+{
+	GElf_Shdr shdr;
+
+	if (gelf_getshdr(scn, &shdr) == NULL)
+		return -1;
+
+	shdr.sh_offset = offset;
+
+	gelf_update_shdr(scn, &shdr);
+
+	return shdr.sh_size;
+}
+
+static GElf_Off get_last_offset(Elf *e, size_t strtab_ndx, int *has_sections,
+				Elf_Scn **dumplist_scn)
 {
 	GElf_Off last_offset = 0;
 	Elf_Scn *scn = NULL;
 	GElf_Off offset;
 	GElf_Shdr shdr;
+	char *name;
 
 	*has_sections = 0;
 
@@ -199,11 +212,19 @@ static GElf_Off get_last_offset(Elf *e, int fd, size_t strtab_ndx,
 		if (shdr.sh_type == SHT_NOBITS)
 			continue;
 
-		/* not interested in shdrstr table */
-		if (elf_ndxscn(scn) == strtab_ndx)
-			offset = shdr.sh_offset;
-		else
+		name = elf_strptr(e, strtab_ndx, shdr.sh_name);
+
+		if (name && strcmp(name, NT_NAME) == 0) {
+			/* overwrite existing dumplist
+			 * (but get a handle first) */
+			*dumplist_scn = scn;
+			continue;
+		} else if (elf_ndxscn(scn) == strtab_ndx) {
+			/* overwrite existing shdrstr table */
+			continue;
+		} else {
 			offset = shdr.sh_offset + shdr.sh_size;
+		}
 
 		if (offset > last_offset)
 			last_offset = offset;
@@ -212,7 +233,8 @@ static GElf_Off get_last_offset(Elf *e, int fd, size_t strtab_ndx,
 	return last_offset;
 }
 
-static void *set_desc(int elfclass, void *desc, off64_t start, off64_t len)
+static void *set_desc_item(int elfclass, void *desc, off64_t start,
+			   off64_t len)
 {
 	if (elfclass == ELFCLASS32) {
 		uint32_t *ptr32 = desc;
@@ -235,6 +257,30 @@ static void *set_desc(int elfclass, void *desc, off64_t start, off64_t len)
 	}
 }
 
+static void *get_desc_item(int elfclass, void *desc, off64_t *start,
+			   off64_t *len)
+{
+	if (elfclass == ELFCLASS32) {
+		uint32_t *ptr32 = desc;
+
+		*start = *ptr32;
+		ptr32++;
+		*len = *ptr32;
+		ptr32++;
+
+		return ptr32;
+	} else {
+		uint64_t *ptr64 = desc;
+
+		*start = *ptr64;
+		ptr64++;
+		*len = *ptr64;
+		ptr64++;
+
+		return ptr64;
+	}
+}
+
 static size_t get_desc_item_size(int elfclass)
 {
 	if (elfclass == ELFCLASS32)
@@ -243,33 +289,20 @@ static size_t get_desc_item_size(int elfclass)
 		return (sizeof(uint64_t) * 2);
 }
 
-int add_dump_list(int core_fd, size_t *core_size,
-		  struct core_data *dump_list, off64_t *dump_offset)
+#define NOTE_SZ_SPACE(sz) ((sz + 3) & ~3)
+#define NOTE_NAME_PTR(n) (((void *)n) + sizeof(*n))
+#define NOTE_DESC_PTR(n, sz) (((void *)NOTE_NAME_PTR(n)) + NOTE_SZ_SPACE(sz))
+
+static int alloc_dump_note(struct core_data *dump_list, int elfclass,
+			   void **note, size_t *size)
 {
-	struct dumplist_note *note;
 	struct core_data *cur;
-	GElf_Off last_offset;
-	Elf_Scn *strtab_scn;
-	size_t strtab_ndx;
 	size_t note_size;
-	int has_sections;
-	GElf_Ehdr ehdr;
-	GElf_Shdr shdr;
+	size_t name_size;
+	size_t desc_size;
 	int count = 0;
+	GElf_Nhdr *n;
 	char *desc;
-	int ret;
-	Elf *e;
-	int fd;
-
-	/* INITIAL SETUP */
-
-	lseek64(core_fd, 0, SEEK_CUR);
-
-	e = elf_begin(core_fd, ELF_C_RDWR, NULL);
-	if (!e)
-		return -1;
-
-	elf_flagelf(e, ELF_C_SET, ELF_F_LAYOUT);
 
 	for (cur = dump_list; cur; cur = cur->next) {
                 if (cur->end == cur->start)
@@ -277,47 +310,169 @@ int add_dump_list(int core_fd, size_t *core_size,
 		count++;
 	}
 
-	note_size = sizeof(struct dumplist_note) +
-		    (get_desc_item_size(gelf_getclass(e)) * count);
+	if (count == 0) {
+		*note = NULL;
+		*size = 0;
+		return 0;
+	}
 
-	note = malloc(note_size);
-	if (!note)
+	name_size = strlen(NT_OWNER) + 1;
+	desc_size = get_desc_item_size(elfclass) * count;
+
+	note_size = sizeof(*n) + NOTE_SZ_SPACE(name_size) +
+		    NOTE_SZ_SPACE(desc_size);
+
+	n = calloc(1, note_size);
+	if (!n)
 		return -1;
 
-	memcpy(note, &note_template, sizeof(note_template));
+	n->n_type = NT_DUMPLIST;
+	n->n_namesz = name_size;
+	n->n_descsz = desc_size;
+	sprintf(NOTE_NAME_PTR(n), NT_OWNER);
 
-	desc = &note->desc[0];
+	desc = NOTE_DESC_PTR(n, name_size);
 	for (cur = dump_list; cur; cur = cur->next) {
                 if (cur->end == cur->start)
 			continue;
-		desc = set_desc(gelf_getclass(e), desc, cur->mem_start,
-				cur->end - cur->start);
+		desc = set_desc_item(elfclass, desc, cur->mem_start,
+				     cur->end - cur->start);
         }
 
-	note->nhdr.n_descsz = get_desc_item_size(gelf_getclass(e)) * count;
+	*size = note_size;
+	*note = n;
 
-	/* GET STRING INDEX */
+	return 0;
+}
+
+static void _prune_dump_list(int elfclass, void *desc, int count,
+			     struct core_data *dump_list)
+{
+	struct core_data *cur;
+	off64_t start;
+	off64_t end;
+	off64_t len;
+	int i;
+
+	/* iterate through all dumps of note */
+
+	for (i = 0; i < count; i++) {
+		desc = get_desc_item(elfclass, desc, &start, &len);
+
+		end = start + len;
+
+		/* iterate through all _new_ dump */
+
+		for (cur = dump_list; cur; cur = cur->next) {
+			if (cur->end == cur->start)
+				continue;
+			if (cur->mem_start >= start &&
+			    cur->mem_start + (cur->end - cur->start) <= end) {
+				/* already covered, "disable" this dump */
+				cur->end = cur->start;
+				break;
+			}
+		}
+	}
+}
+
+static int prune_dump_list(int elfclass, Elf_Data *data,
+			   struct core_data *dump_list)
+{
+	char *name;
+	GElf_Nhdr *n;
+	size_t nsize;
+	void *desc;
+	int count;
+
+	n = data->d_buf;
+
+	/* iterate through all notes */
+
+	while (n < (GElf_Nhdr *)(data->d_buf + data->d_size)) {
+		name = NOTE_NAME_PTR(n);
+		desc = NOTE_DESC_PTR(n, n->n_namesz);
+
+		nsize = sizeof(*n) + NOTE_SZ_SPACE(n->n_namesz) +
+			NOTE_SZ_SPACE(n->n_descsz);
+
+		/* only process notes we recognize */
+		if (strcmp(name, NT_OWNER) == 0 && n->n_type == NT_DUMPLIST) {
+			count = n->n_descsz / get_desc_item_size(elfclass);
+
+			_prune_dump_list(elfclass, desc, count, dump_list);
+		}
+
+		n = ((void *)n) + nsize;
+	}
+
+	return 0;
+}
+
+int add_dump_list(int core_fd, size_t *core_size,
+		  struct core_data *dump_list, off64_t *dump_offset)
+{
+	Elf_Scn *dumplist_scn = NULL;
+	GElf_Off last_offset;
+	Elf_Scn *strtab_scn;
+	size_t strtab_ndx;
+	void *note = NULL;
+	size_t note_size;
+	int has_sections;
+	size_t sec_size;
+	GElf_Ehdr ehdr;
+	Elf_Data *data;
+	int err = -1;
+	Elf *e;
+
+	/*
+	 * initial setup
+	 */
+
+	if (elf_version(EV_CURRENT) == EV_NONE)
+		return -1;
+
+	lseek64(core_fd, 0, SEEK_CUR);
+
+	e = elf_begin(core_fd, ELF_C_RDWR, NULL);
+	if (!e)
+		return -1;
+
+	if (elf_kind(e) != ELF_K_ELF)
+		goto out;
+
+	elf_flagelf(e, ELF_C_SET, ELF_F_LAYOUT);
+
+	/*
+	 * get string index
+	 */
 
 	if (gelf_getehdr(e, &ehdr) == NULL)
-		return -1;
+		goto out;
 
 	if (elf_getshdrstrndx(e, &strtab_ndx) != 0)
-		return -1;
+		goto out;
 
-	/* LOAD AND CHECK ALL SECTIONS */
+	/*
+	 * load and check all sections
+	 */
 
-	last_offset = get_last_offset(e, fd, strtab_ndx, &has_sections);
+	last_offset = get_last_offset(e, strtab_ndx, &has_sections,
+				      &dumplist_scn);
 	if (last_offset == 0)
 		last_offset = *core_size;
 
-	*dump_offset = last_offset;
+	if (dump_offset)
+		*dump_offset = last_offset;
 
-	/* READ IN OR CREATE SHSTRTAB SECTION */
+	/*
+	 * create or read in strtab section
+	 */
 
 	if (strtab_ndx == 0) {
 		strtab_scn = add_shstrtab_section(e);
 		if (!strtab_scn)
-			return -1;
+			goto out;
 
 		ehdr.e_shstrndx = elf_ndxscn(strtab_scn);
 		strtab_ndx = ehdr.e_shstrndx;
@@ -335,41 +490,80 @@ int add_dump_list(int core_fd, size_t *core_size,
 
 			if (add_debug_section(e, strtab_scn, offset,
 					      last_offset - offset) != 0) {
-				return -1;
+				goto out;
 			}
 		}
 	} else {
-		Elf_Data *d = NULL;
-
 		strtab_scn = elf_getscn(e, strtab_ndx);
 		if (!strtab_scn)
-			return -1;
+			goto out;
 
-		/* read in strtab data */
+		/* read in existing data */
+		data = NULL;
 		do {
-			d = elf_getdata(strtab_scn, d);
-		} while (d);
+			data = elf_getdata(strtab_scn, data);
+		} while (data);
 	}
 
-	/* ADD DUMP SECTION */
+	/*
+	 * create or read in dumplist section
+	 */
 
-	if (add_dump_section(e, strtab_scn, last_offset, note, note_size) != 0)
-		return -1;
-	last_offset += note_size;
+	if (dumplist_scn) {
+		/* read in existing data */
+		data = NULL;
+		while (1) {
+			data = elf_getdata(dumplist_scn, data);
+			if (!data)
+				break;
 
-	/* UPDATE STRING TABLE SHDR */
+			/* disable dump list items that are already
+			 * covered by the existing data */
+			if (prune_dump_list(gelf_getclass(e), data,
+					    dump_list) != 0) {
+				goto out;
+			}
+		}
+	} else {
+		/* create new section */
+		dumplist_scn = add_dump_section(e, strtab_scn);
+	}
 
-	if (gelf_getshdr(strtab_scn, &shdr) == NULL)
-		return -1;
-	shdr.sh_offset = last_offset;
-	gelf_update_shdr(strtab_scn, &shdr);
+	/*
+	 * add dump list data
+	 */
 
-	last_offset += shdr.sh_size;
+	if (alloc_dump_note(dump_list, gelf_getclass(e), &note,
+			    &note_size) != 0) {
+		goto out;
+	}
 
-	/* FLUSH, CLEANUP */
+	/* note may be NULL if there are no _new_ dump list items */
+	if (note) {
+		if (add_dump_data(dumplist_scn, note, note_size) != 0)
+			goto out;
+	}
+
+	/*
+	 * update dumplist and strtab offsets
+	 */
+
+	sec_size = update_section_offset(dumplist_scn, last_offset);
+	if (sec_size == 0)
+		goto out;
+	last_offset += sec_size;
+
+	sec_size = update_section_offset(strtab_scn, last_offset);
+	if (sec_size == 0)
+		goto out;
+	last_offset += sec_size;
+
+	/*
+	 * flush, cleanup
+	 */
 
 	if (gelf_getehdr(e, &ehdr) == NULL)
-		return -1;
+		goto out;
 	ehdr.e_shentsize = gelf_fsize(e, ELF_T_SHDR, 1, EV_CURRENT);
 	ehdr.e_shstrndx = elf_ndxscn(strtab_scn);
 	ehdr.e_shoff = last_offset;
@@ -377,23 +571,24 @@ int add_dump_list(int core_fd, size_t *core_size,
 
 	elf_flagelf(e, ELF_C_SET, ELF_F_DIRTY);
 
-	ret = elf_update(e, ELF_C_WRITE);
-	if (ret < 0)
-		return -1;
+	err = elf_update(e, ELF_C_WRITE);
+	if (err < 0)
+		goto out;
 
-	/* UPDATE LAST OFFSET */
+	/*
+	 * set new core size
+	 */
 
 	if (gelf_getehdr(e, &ehdr) == NULL)
-		return -1;
-	last_offset += ehdr.e_shentsize * ehdr.e_shnum;
+		goto out;
 
+	*core_size = last_offset + (ehdr.e_shentsize * ehdr.e_shnum);
+
+	err = 0;
+out:
 	elf_end(e);
 
-	/* ADD NEW SECTIONS (AND HEADERS) TO CORE DATA */
-
-	*core_size = last_offset;
-
-	free(note);
-
-	return 0;
+	if (note)
+		free(note);
+	return err;
 }
