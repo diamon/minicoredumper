@@ -72,8 +72,8 @@ struct dump_info {
 	int core_fd;
 	int fatcore_fd;
 
-	off_t core_offset;
-	off_t core_start_offset;
+	off64_t core_offset;
+	off64_t core_start_offset;
 	int elfclass;
 	FILE *info_file;
 

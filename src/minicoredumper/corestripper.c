@@ -1856,13 +1856,13 @@ static int dump_stacks(struct dump_info *di)
 	return 0;
 }
 
-static off_t get_core_pos(struct dump_info *di, unsigned long addr)
+static off64_t get_core_pos(struct dump_info *di, unsigned long addr)
 {
 	struct core_vma *vma;
 
 	vma = get_vma_pos(di, addr);
 	if (!vma)
-		return (off_t)-1;
+		return (off64_t)-1;
 
 	return (vma->file_off + addr - vma->start);
 }
@@ -2179,7 +2179,7 @@ static int dump_data_content_core(struct dump_info *di,
 	return 0;
 }
 
-static int add_symbol_map_entry(struct dump_info *di, off_t core_pos,
+static int add_symbol_map_entry(struct dump_info *di, off64_t core_pos,
 				size_t size, char type, const char *ident)
 {
 	char *tmp_path;
@@ -2213,7 +2213,7 @@ static int dump_data_file_bin(struct dump_info *di, struct mcd_dump_data *dd,
 	struct dump_data_elem *es = &dd->es[0];
 	unsigned long addr_ind;
 	unsigned long addr;
-	off_t core_pos;
+	off64_t core_pos;
 	size_t length;
 	char *buf;
 	int ret;
@@ -2255,7 +2255,7 @@ static int dump_data_file_bin(struct dump_info *di, struct mcd_dump_data *dd,
 		fwrite(&addr, sizeof(unsigned long), 1, file);
 
 		core_pos = get_core_pos(di, addr_ind);
-		if (core_pos != (off_t)-1) {
+		if (core_pos != (off64_t)-1) {
 			add_symbol_map_entry(di, core_pos,
 					     sizeof(unsigned long), 'I',
 					     dd->ident);
@@ -2266,7 +2266,7 @@ static int dump_data_file_bin(struct dump_info *di, struct mcd_dump_data *dd,
 	fwrite(buf, length, 1, file);
 
 	core_pos = get_core_pos(di, addr);
-	if (core_pos != (off_t)-1)
+	if (core_pos != (off64_t)-1)
 		add_symbol_map_entry(di, core_pos, length, 'D', dd->ident);
 out:
 	free(buf);
