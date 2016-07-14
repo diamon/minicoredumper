@@ -56,9 +56,9 @@ static void usage(const char *argv0)
 struct ident_data {
 	const char *filename;
 	const char *ident;
-	long dump_offset;
-	long core_offset;
-	long size;
+	unsigned long dump_offset;
+	unsigned long core_offset;
+	unsigned long size;
 };
 
 struct prog_option {
