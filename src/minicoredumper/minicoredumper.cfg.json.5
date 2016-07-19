@@ -5,7 +5,7 @@
 .\" This file has been put into the public domain.
 .\" You can do whatever you want with this file.
 .\"
-.TH MINICOREDUMPER.CFG.JSON 5 "2015-11-03" "Ericsson" "minicoredumper"
+.TH MINICOREDUMPER.CFG.JSON 5 "2016-07-19" "Ericsson" "minicoredumper"
 .
 .SH NAME
 minicoredumper.cfg.json \- the main configuration file for
@@ -27,7 +27,6 @@ recepts for various conditions
 .
 .SH "FILE FORMAT"
 The file uses the JSON format. The options are:
-.RS
 .TP
 .B base_dir
 (string) The root directory where the dumped data will be stored.
@@ -40,11 +39,9 @@ The dump files will be stored in a sub-directory using the template:
 recept file. See
 .B CONDITIONS
 for configuration options for a condition.
-.RE
 .
 .SH CONDITIONS
 A condition can contain any combination of these options:
-.RS
 .TP
 .B exe
 (string) The full path to the binary being executed as retured by
@@ -59,7 +56,6 @@ call).
 .B recept
 (string) The full path to the recept file to use if this condition matches.
 .IR
-.RE
 .PP
 Both
 .I exe

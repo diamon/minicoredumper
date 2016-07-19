@@ -5,7 +5,7 @@
 .\" This file has been put into the public domain.
 .\" You can do whatever you want with this file.
 .\"
-.TH COREINJECT 1 "2015-11-03" "Ericsson" "minicoredumper"
+.TH COREINJECT 1 "2016-07-19" "Ericsson" "minicoredumper"
 .
 .SH NAME
 coreinject \- inject binary dumps from
@@ -14,9 +14,9 @@ into a core file
 .
 .SH SYNOPSIS
 .B coreinject
-.I core
+[\fIOPTION\fR]... \fIcore\fR
 .I symbol.map
-.I binary-dump...
+.IR binary-dump ...
 .
 .SH DESCRIPTION
 If an application using
@@ -34,6 +34,23 @@ can inject that binary data into the stripped
 .I core
 file for use with
 .BR gdb (1).
+.PP
+The options are as follows:
+.TP
+\fB--data=\fIIDENT\fR:\fISIZE\fR@\fISRCFILE\fR+\fISRCOFF\fR
+Inject
+.I SIZE
+bytes of data at offset
+.I SRCOFF
+of file
+.I SRCFILE
+to the
+.BR core (5).
+The data is injected at the location of the
+.I IDENT
+as stored in the symbol map. This option is useful for injecting data
+other than that which was actually dumped by the
+.BR minicoredumper (1).
 .
 .SH NOTES
 If the binary dump used

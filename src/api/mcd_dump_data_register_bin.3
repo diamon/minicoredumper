@@ -5,15 +5,15 @@
 .\" This file has been put into the public domain.
 .\" You can do whatever you want with this file.
 .\"
-.TH MCD_DUMP_DATA_REGISTER_BIN 3 "2015-11-03" "Ericsson" "minicoredumper"
+.TH MCD_DUMP_DATA_REGISTER_BIN 3 "2016-07-19" "Ericsson" "minicoredumper"
 .
 .SH NAME
 mcd_dump_data_register_bin \- register binary data to be dumped
 .
 .SH SYNOPSIS
-.B #include <minicoredumper.h>
-.PP
 .nf
+.B #include <minicoredumper.h>
+
 .BI "int mcd_dump_data_register_bin(const char *" ident ,
 .BI "                               unsigned long " dump_scope ,
 .BI "                               mcd_dump_data_t *" save_ptr ,
@@ -33,7 +33,7 @@ function registers binary data to be dumped.
 is a string to identify the binary dump later. If non-NULL, it must be
 unique! If
 .I ident
-is NULL, the data will only dumped if this is the crashing application,
+is NULL, the data is only dumped if this is the crashing application,
 in which case the data will be explicitly stored in the
 .BR core (5)
 file. The data will only be dumped if a scope value greater than or equal to
@@ -58,6 +58,49 @@ should be interpreted when dumping data.
 .I data_size
 specifies the number of bytes of data to dump (or a pointer to the number).
 .
+.SH "DATA FLAGS"
+The
+.I ptr_flags
+option specifies how
+.I data_ptr
+and
+.I data_size
+should be interpreted when dumping data. It can also affect dump behavior.
+The flags are bitwise combined to describe the desired behavior. The flags
+available are:
+.TP
+.B MCD_DATA_PTR_DIRECT
+.I data_ptr
+is a pointer to the data to dump.
+.TP
+.B MCD_DATA_PTR_INDIRECT
+.I data_ptr
+is a pointer to a second pointer that points to the data to dump. The
+second pointer is evaluated at dump. See
+.B BUGS
+for details about the dangers of this flag.
+.TP
+.B MCD_LENGTH_DIRECT
+.I data_size
+specifies the size (in bytes) of data to dump.
+.TP
+.B MCD_LENGTH_INDIRECT
+.I data_size
+is a pointer to the size (in bytes) of data to dump. The pointer is
+evaluated at dump. See
+.B BUGS
+for details about the dangers of this flag.
+.TP
+.B MCD_DATA_NODUMP
+Do not dump the specified data and size. Only store information about
+where in memory and the
+.BR core (5)
+file this data would be stored. This information is stored in the
+.I symbol.map
+dump file and can be used by the
+.BR coreinject (1) 
+tool to inject data to the registered location.
+.
 .SH "RETURN VALUE"
 .BR mcd_dump_data_register_bin ()
 returns 0 on success, otherwise an error value is returned.
@@ -69,9 +112,11 @@ Insufficient memory available to allocate internal structures.
 .TP
 .B EINVAL
 .I data_ptr
-was NULL or
+was NULL,
 .I data_size
-was 0.
+was 0, or
+.I ident
+was invalid.
 .TP
 .B EEXIST
 A binary or text dump matching the non-NULL
@@ -131,9 +176,15 @@ and
 allow an application to change the size and location of data to dump
 during run-time. However, such changes should be performed carefully
 because an application can not know when a dump will occur.
+.PP
+The string specified in
+.I ident
+is also the file name of the dump file. For this reason characters
+such as '/' are not permitted.
 .
 .SH "SEE ALSO"
 .BR libminicoredumper (7),
 .BR mcd_dump_data_unregister (3)
+.BR coreinject (1)
 .PP
 The DiaMon Workgroup: <http://www.diamon.org>

@@ -5,22 +5,21 @@
 .\" This file has been put into the public domain.
 .\" You can do whatever you want with this file.
 .\"
-.TH MCD_DUMP_DATA_REGISTER_TEXT 3 "2015-11-03" "Ericsson" "minicoredumper"
+.TH MCD_DUMP_DATA_REGISTER_TEXT 3 "2016-07-19" "Ericsson" "minicoredumper"
 .
 .SH NAME
 mcd_dump_data_register_text, mcd_vdump_data_register_text \-
 register text data to be dumped
 .
 .SH SYNOPSIS
-.B #include <minicoredumper.h>
-.PP
 .nf
+.B #include <minicoredumper.h>
+
 .BI "int mcd_dump_data_register_text(const char *" ident ,
 .BI "                                unsigned long " dump_scope ,
 .BI "                                mcd_dump_data_t *" save_ptr ,
 .BI "                                const char *" fmt ", ...);"
-.fi
-.PP
+
 .nf
 .BI "int mcd_vdump_data_register_text(const char *" ident ,
 .BI "                                 unsigned long " dump_scope ,
@@ -94,7 +93,7 @@ Insufficient memory available to allocate internal structures.
 .TP
 .B EINVAL
 .I ident
-was NULL or
+was invalid or
 .I fmt
 was NULL.
 .TP
@@ -123,6 +122,11 @@ When dumping, each pointer argument is typecasted based on the
 length modifier and conversion specifier associated with that
 argument. If this does not match the true type of the variable,
 the dumped text may be invalid.
+.PP
+The string specified in
+.I ident
+is also the file name of the text dump file. For this reason
+characters such as '/' are not permitted.
 .
 .SH "SEE ALSO"
 .BR libminicoredumper (7),
