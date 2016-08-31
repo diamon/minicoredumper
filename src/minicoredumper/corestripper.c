@@ -1553,6 +1553,10 @@ static struct sym_data *alloc_sym_data(const char *file, unsigned long start)
 
 	sd->start = start;
 	sd->fd = open(file, O_RDONLY);
+	if (sd->fd < 0) {
+		free(sd);
+		return NULL;
+	}
 	sd->elf = elf_begin(sd->fd, ELF_C_READ, NULL);
 
 	while (1) {
