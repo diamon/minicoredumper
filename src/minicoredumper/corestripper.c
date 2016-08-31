@@ -3149,18 +3149,97 @@ static int add_dumplist_section(struct dump_info *di)
 }
 #endif
 
-/*
- * We want:
- * # cat /proc/sys/kernel/core_pattern
- *
- * Last param optional base config path.
- */
-int main(int argc, char **argv)
+static void do_dump(struct dump_info *di, int argc, char *argv[])
 {
-	struct dump_info di;
 	int ret;
 
+	ret = init_di(di, argc, argv);
+	if (ret == 1) {
+		fatal("unable to create new dump info instance");
+	} else if (ret == 2) {
+		info("no watch for comm=%s exe=%s", di->comm, di->exe);
+		goto out;
+	}
+
+	if (init_log(di) != 0)
+		info("failed to init debug log");
+
+	/* dump up until first vma */
+	if (init_src_core(di, STDIN_FILENO) != 0)
+		fatal("unable to initialize core");
+
+	/* log the vma info we found */
+	log_vmas(di);
+
+	/* copy intersting /proc data (if configured) */
+	if (di->cfg->prog_config.write_proc_info)
+		write_proc_info(di);
+
+	/* Get shared object list. This is necessary for sym_address() to work.
+	 * This function will also dump the auxv data (if configured). */
+	get_so_list(di);
+
+	/* dump all stacks (if configured) */
+	if (di->cfg->prog_config.stack.dump_stacks)
+		dump_stacks(di);
+
+	/* dump the pthread list (if configured) */
+	if (di->cfg->prog_config.dump_pthread_list)
+		get_pthread_list(di);
+
+	/* dump the robust mutex list (if configured) */
+	if (di->cfg->prog_config.dump_robust_mutex_list)
+		get_robust_mutex_list(di);
+
+	/* dump any maps configured for dumping */
+	if (di->cfg->prog_config.maps.nglobs > 0)
+		dump_maps(di);
+
+	/* dump any buffers configured for dumping */
+	get_interesting_buffers(di);
+
+	/* dump registered application data */
+	dyn_dump(di);
+
+#ifdef SUPPORT_LIBELF_MODIFY
+	/* add a new elf section containing the dump list */
+	if (add_dumplist_section(di) != 0)
+		info("WARNING: failed to add dump list");
+#else
+	info("WARNING: libelf too old to support dump list");
+#endif
+
+	/* dump data to compressed tar'd sparse core file */
+	if (dump_compressed_tar(di) != 0) {
+		/* dump data to compressed core file */
+		if (dump_compressed_core(di) != 0) {
+			/* dump data to sparse core file */
+			dump_mini_core(di);
+		}
+	}
+
+	/* dump a fat core (if configured) */
+	if (di->cfg->prog_config.dump_fat_core)
+		dump_fat_core(di);
+
+	/* notify registered apps (if configured) */
+	if (di->cfg->prog_config.live_dumper) {
+		setup_public_subdir(di->dst_dir, "proc");
+		setup_public_subdir(di->dst_dir, "dumps");
+		trigger_live_dump(di, argv[0]);
+	}
+out:
+	/* we are done, cleanup */
+	cleanup_di(di);
+}
+
+int main(int argc, char *argv[])
+{
+	struct dump_info di;
+
 	memset(&di, 0, sizeof(di));
+
+	/* set global di pointer, used only by info()/fatal() */
 	global_di = &di;
 
 	/* determine page size */
@@ -3182,84 +3261,8 @@ int main(int argc, char **argv)
 		fatal("wrong amount of command line parameters");
 	}
 
-	ret = init_di(&di, argc, argv);
-	if (ret == 1) {
-		fatal("unable to create new dump info instance");
-	} else if (ret == 2) {
-		info("no watch for comm=%s exe=%s", di.comm, di.exe);
-		exit(0);
-	}
+	do_dump(&di, argc, argv);
 
-	if (init_log(&di) != 0)
-		info("failed to init debug log");
-
-	/* dump up until first vma */
-	if (init_src_core(&di, STDIN_FILENO) != 0)
-		fatal("unable to initialize core");
-
-	/* log the vma info we found */
-	log_vmas(&di);
-
-	/* copy intersting /proc data (if configured) */
-	if (di.cfg->prog_config.write_proc_info)
-		write_proc_info(&di);
-
-	/* Get shared object list. This is necessary for sym_address() to work.
-	 * This function will also dump the auxv data (if configured). */
-	get_so_list(&di);
-
-	/* dump all stacks (if configured) */
-	if (di.cfg->prog_config.stack.dump_stacks)
-		dump_stacks(&di);
-
-	/* dump the pthread list (if configured) */
-	if (di.cfg->prog_config.dump_pthread_list)
-		get_pthread_list(&di);
-
-	/* dump the robust mutex list (if configured) */
-	if (di.cfg->prog_config.dump_robust_mutex_list)
-		get_robust_mutex_list(&di);
-
-	/* dump any maps configured for dumping */
-	if (di.cfg->prog_config.maps.nglobs > 0)
-		dump_maps(&di);
-
-	/* dump any buffers configured for dumping */
-	get_interesting_buffers(&di);
-
-	/* dump registered application data */
-	dyn_dump(&di);
-
-#ifdef SUPPORT_LIBELF_MODIFY
-	/* add a new elf section containing the dump list */
-	if (add_dumplist_section(&di) != 0)
-		info("WARNING: failed to add dump list");
-#else
-	info("WARNING: libelf too old to support dump list");
-#endif
-
-	/* dump data to compressed tar'd sparse core file */
-	if (dump_compressed_tar(&di) != 0) {
-		/* dump data to compressed core file */
-		if (dump_compressed_core(&di) != 0) {
-			/* dump data to sparse core file */
-			dump_mini_core(&di);
-		}
-	}
-
-	/* dump a fat core (if configured) */
-	if (di.cfg->prog_config.dump_fat_core)
-		dump_fat_core(&di);
-
-	/* notify registered apps (if configured) */
-	if (di.cfg->prog_config.live_dumper) {
-		setup_public_subdir(di.dst_dir, "proc");
-		setup_public_subdir(di.dst_dir, "dumps");
-		trigger_live_dump(&di, argv[0]);
-	}
-
-	/* we are done, cleanup */
-	cleanup_di(&di);
 	closelog();
 	munlockall();
 
