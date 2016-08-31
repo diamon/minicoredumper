@@ -314,6 +314,44 @@ out:
 	return err;
 }
 
+static char *alloc_dst_dir(time_t timestamp, const char *base_dir,
+			   const char *comm_base, pid_t pid)
+{
+	char timestamp_str[sizeof("YYYYMMDD.HHMMSS+0000")];
+	char *tmp_path;
+	struct tm tm;
+
+	/* compute timestamp string */
+	if (localtime_r(&timestamp, &tm) == NULL) {
+		time(&timestamp);
+		info("failed to interpret timestamp, falling back to now");
+		if (localtime_r(&timestamp, &tm) == NULL) {
+			info("localtime_r failed");
+			return NULL;
+		}
+	}
+
+	if (strftime(timestamp_str, sizeof(timestamp_str), "%Y%m%d.%H%M%S%z",
+		     &tm) == 0) {
+		info("strftime failed");
+		return NULL;
+	}
+
+	if (asprintf(&tmp_path, CORE_DIR_FMT, base_dir, comm_base,
+		     timestamp_str, pid) == -1) {
+		return NULL;
+	}
+
+	if (mkdir(tmp_path, 0700) == -1) {
+		info("unable to create directory \'%s\': %s", tmp_path,
+		     strerror(errno));
+		free(tmp_path);
+		return NULL;
+	}
+
+	return tmp_path;
+}
+
 static int init_di(struct dump_info *di, char **argv, int argc)
 {
 	const char *recept;
@@ -321,8 +359,6 @@ static int init_di(struct dump_info *di, char **argv, int argc)
 	char *tmp_path;
 	char *p;
 	int ret;
-	struct tm tm;
-	char timestamp_str[sizeof("YYYYMMDD.HHMMSS+0000")];
 
 	if (elf_version(EV_CURRENT) == EV_NONE) {
 		info("elf_version EV_NONE");
@@ -415,41 +451,14 @@ static int init_di(struct dump_info *di, char **argv, int argc)
 		comm_base = p + 1;
 	}
 
-	/* compute timestamp string */
-	if (localtime_r(&di->timestamp, &tm) == NULL) {
-		time(&di->timestamp);
-		info("failed to interpret timestamp, falling back to now");
-		if (localtime_r(&di->timestamp, &tm) == NULL) {
-			info("localtime_r failed");
-			return 1;
-		}
-	}
-
-	if (strftime(timestamp_str, sizeof(timestamp_str), "%Y%m%d.%H%M%S%z",
-		     &tm) == 0) {
-		info("strftime failed");
-		return 1;
-	}
-
-	if (asprintf(&tmp_path, CORE_DIR_FMT, di->cfg->base_dir, comm_base,
-		     timestamp_str, di->pid) == -1) {
-		return 1;
-	}
-	di->dst_dir = tmp_path;
-
-	if (mkdir(di->dst_dir, 0700) == -1) {
-		info("unable to create directory \'%s\': %s", di->dst_dir,
-		     strerror(errno));
-		return 1;
-	}
+	di->dst_dir = alloc_dst_dir(di->timestamp, di->cfg->base_dir,
+				    comm_base, di->pid);
 
 	if (get_task_list(di) != 0)
 		return 1;
 
-	if (asprintf(&tmp_path, "/core-%s-%d-%s", comm_base, di->pid,
-		     timestamp_str) == -1) {
+	if (asprintf(&tmp_path, "/core-%s-%d", comm_base, di->pid) == -1)
 		return 1;
-	}
 
 	di->elf_fd = shm_open(tmp_path, O_CREAT|O_EXCL|O_RDWR,
 			      S_IRUSR|S_IWUSR);
