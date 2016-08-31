@@ -314,6 +314,44 @@ out:
 	return err;
 }
 
+static char *alloc_comm(char *arg, pid_t pid)
+{
+	char *tmp_path;
+	FILE *f;
+	char *p;
+
+	if (!arg)
+		return NULL;
+
+	if (arg[0] != 0)
+		return strdup(arg);
+
+	if (asprintf(&tmp_path, "/proc/%i/comm", pid) == -1)
+		return NULL;
+
+	f = fopen(tmp_path, "r");
+	free(tmp_path);
+	if (!f)
+		return NULL;
+
+	p = calloc(1, PATH_MAX + 1);
+	if (!p) {
+		fclose(f);
+		return NULL;
+	}
+
+	fread(p, PATH_MAX, 1, f);
+	if (ferror(f) || p[0] == 0) {
+		free(p);
+		fclose(f);
+		return NULL;
+	}
+
+	fclose(f);
+
+	return p;
+}
+
 static char *alloc_dst_dir(time_t timestamp, const char *base_dir,
 			   const char *comm_base, pid_t pid)
 {
@@ -394,7 +432,7 @@ static int init_di(struct dump_info *di, int argc, char *argv[])
 	if (!di->hostname)
 		return 1;
 
-	di->comm = argv[7];
+	di->comm = alloc_comm(argv[7], di->pid);
 	if (!di->comm)
 		return 1;
 
@@ -1594,6 +1632,7 @@ static void cleanup_di(struct dump_info *di)
 	free(di->tsks);
 	free(di->core_path);
 	free(di->dst_dir);
+	free(di->comm);
 	free(di->exe);
 	while (di->core_file) {
 		core_data = di->core_file;
