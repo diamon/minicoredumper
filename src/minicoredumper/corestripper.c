@@ -676,26 +676,36 @@ out:
 	return err;
 }
 
-static int vma_cb(struct dump_info *di, Elf *elf, GElf_Phdr *phdr)
+static int add_vma(struct dump_info *di, unsigned long start,
+		   unsigned long mem_end, unsigned long file_end,
+		   unsigned long file_off, unsigned int flags)
 {
 	struct core_vma *v;
 
 	/* allocate a new vma entry */
 	v = malloc(sizeof(*v));
 	if (!v)
-		goto out;
+		return -1;
 
 	/* fill out the entry data */
-	v->start = phdr->p_vaddr;
-	v->file_end = v->start + phdr->p_filesz;
-	v->mem_end = v->start + phdr->p_memsz;
-	v->file_off = phdr->p_offset;
-	v->flags = phdr->p_flags;
+	v->start = start;
+	v->mem_end = mem_end;
+	v->file_end = file_end;
+	v->file_off = file_off;
+	v->flags = flags;
 
 	/* push the new entry on the vma list */
 	v->next = di->vma;
 	di->vma = v;
-out:
+
+	return 0;
+}
+
+static int vma_cb(struct dump_info *di, Elf *elf, GElf_Phdr *phdr)
+{
+	add_vma(di, phdr->p_vaddr, phdr->p_vaddr + phdr->p_memsz,
+		phdr->p_vaddr + phdr->p_filesz, phdr->p_offset, phdr->p_flags);
+
 	/* continue */
 	return 0;
 }
