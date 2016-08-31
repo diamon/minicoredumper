@@ -30,7 +30,7 @@ sudo cp etc/minicoredumper/*.recept.json /etc/minicoredumper/</pre>
 <div class="row">
   <div class="col-sm-12">
     <p>After modifying the configuration and recept files as needed, the minicoredumper dump utility is ready for use. Now Linux must be directed to use minicoredumper to handle the creation of core files:</p>
-    <pre>echo '|/usr/local/bin/minicoredumper %p %u %g %s %t %h %e' | sudo tee /proc/sys/kernel/core_pattern</pre>
+    <pre>echo '|/usr/local/bin/minicoredumper %P %u %g %s %t %h %e' | sudo tee /proc/sys/kernel/core_pattern</pre>
     <p>Note: This is not a persistent setting and must be performed on each system boot.</p>
   </div>
 </div>
@@ -96,7 +96,7 @@ sudo systemctl reload dbus.service</pre>
 <div class="row">
   <div class="col-sm-12">
     <p>Linux must launch the minicoredumper with the inotify variable defined.</p>
-    <pre>echo '|/usr/bin/env MINICOREDUMPER_MONITOR=/var/minicoredumper/trigger /usr/local/bin/minicoredumper %p %u %g %s %t %h %e' | sudo tee /proc/sys/kernel/core_pattern</pre>
+    <pre>echo '|/usr/bin/env MINICOREDUMPER_MONITOR=/var/minicoredumper/trigger /usr/local/bin/minicoredumper %P %u %g %s %t %h %e' | sudo tee /proc/sys/kernel/core_pattern</pre>
   </div>
 </div>
 <br>
