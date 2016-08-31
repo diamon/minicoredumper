@@ -80,7 +80,7 @@ int dump_data_walk(char *path, unsigned long dump_scope)
 
 	dump_proc(path, pid);
 
-	if (asprintf(&tmp_path, "%s/dumps-%i/", path, pid) == -1)
+	if (asprintf(&tmp_path, "%s/dumps/%i", path, pid) == -1)
 		return errno;
 
 	if (mkdir(tmp_path, 0700) == -1) {
@@ -129,10 +129,14 @@ int dump_data_walk(char *path, unsigned long dump_scope)
 
 		/* handle binary dump */
 		if (iter->type == MCD_BIN) {
-			if ((iter->es->flags & MCD_DATA_PTR_INDIRECT))
+			if ((iter->es->flags & MCD_DATA_PTR_INDIRECT)) {
+				fwrite(iter->es->data_ptr, 1,
+				       sizeof(unsigned long), ft);
+
 				data = *(void **)iter->es->data_ptr;
-			else
+			} else {
 				data = iter->es->data_ptr;
+			}
 
 			if ((iter->es->flags & MCD_LENGTH_INDIRECT))
 				length = *(iter->es->u.length_ptr);
@@ -287,6 +291,7 @@ static void *monitor_thread(void *arg)
 	return NULL;
 }
 
+/* setup inotify method */
 int mcd_dump_data_dbus_start(void)
 {
 	char *monitor_dname;

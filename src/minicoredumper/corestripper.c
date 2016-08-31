@@ -2358,7 +2358,7 @@ static int dump_data_content_file(struct dump_info *di,
 	int len;
 	int ret;
 
-	len = strlen(di->dst_dir) + strlen("/dumps/") +
+	len = strlen(di->dst_dir) + strlen("/dumps/") + 32 +
 	      strlen(dd->ident) + 1;
 	tmp_path = malloc(len);
 	if (!tmp_path)
@@ -2368,8 +2368,13 @@ static int dump_data_content_file(struct dump_info *di,
 	snprintf(tmp_path, len, "%s/dumps", di->dst_dir);
 	mkdir(tmp_path, 0700);
 
+	/* create dumps pid sub-directory */
+	snprintf(tmp_path, len, "%s/dumps/%i", di->dst_dir, di->pid);
+	mkdir(tmp_path, 0700);
+
 	/* open text file for output */
-	snprintf(tmp_path, len, "%s/dumps/%s", di->dst_dir, dd->ident);
+	snprintf(tmp_path, len, "%s/dumps/%i/%s", di->dst_dir, di->pid,
+		 dd->ident);
 	file = fopen(tmp_path, "a");
 	ret = errno;
 	if (!file)
@@ -3111,6 +3116,9 @@ static void setup_public_subdir(const char *base, const char *subdir)
 
 	snprintf(name, size, "%s/%s", base, subdir);
 
+	mkdir(base, 0755);
+	chmod(base, 0755);
+
 	mkdir(name, 01777);
 	chmod(name, 01777);
 
@@ -3241,8 +3249,8 @@ int main(int argc, char **argv)
 
 	/* notify registered apps (if configured) */
 	if (di.cfg->prog_config.live_dumper) {
-		chmod(di.dst_dir, 01777);
 		setup_public_subdir(di.dst_dir, "proc");
+		setup_public_subdir(di.dst_dir, "dumps");
 		trigger_live_dump(&di, argv[0]);
 	}
 
