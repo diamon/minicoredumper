@@ -352,7 +352,7 @@ static char *alloc_dst_dir(time_t timestamp, const char *base_dir,
 	return tmp_path;
 }
 
-static int init_di(struct dump_info *di, char **argv, int argc)
+static int init_di(struct dump_info *di, int argc, char *argv[])
 {
 	const char *recept;
 	char *comm_base;
@@ -398,15 +398,15 @@ static int init_di(struct dump_info *di, char **argv, int argc)
 	if (!di->comm)
 		return 1;
 
-	di->exe = malloc(PATH_MAX);
+	di->exe = malloc(PATH_MAX + 1);
 	if (!di->exe)
 		return 1;
 
 	if (asprintf(&tmp_path, "/proc/%i/exe", di->pid) == -1)
 		return 1;
 
-	ret = readlink(tmp_path, di->exe, PATH_MAX);
-	if (ret < 0 || ret >= PATH_MAX) {
+	ret = readlink(tmp_path, di->exe, PATH_MAX + 1);
+	if (ret < 0 || ret > PATH_MAX) {
 		info("readlink on \'%s\' failed", tmp_path);
 		free(tmp_path);
 		return 1;
@@ -419,7 +419,7 @@ static int init_di(struct dump_info *di, char **argv, int argc)
 		di->cfg = init_config("/etc/minicoredumper/"
 				      "minicoredumper.cfg.json");
 	} else if (argc == 9) {
-		info("using own minicoredumper cfg: %s", argv[8]);
+		info("using custom minicoredumper cfg: %s", argv[8]);
 		di->cfg = init_config(argv[8]);
 	} else {
 		fatal("wrong arg count, check /proc/sys/kernel/core_pattern");
@@ -3121,7 +3121,7 @@ int main(int argc, char **argv)
 		fatal("wrong amount of command line parameters");
 	}
 
-	ret = init_di(&di, argv, argc);
+	ret = init_di(&di, argc, argv);
 	if (ret == 1) {
 		fatal("unable to create new dump info instance");
 	} else if (ret == 2) {
