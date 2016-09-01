@@ -495,29 +495,41 @@ static int init_di(struct dump_info *di, int argc, char *argv[])
 	if (get_task_list(di) != 0)
 		return 1;
 
-	if (asprintf(&tmp_path, "/core-%s-%d", comm_base, di->pid) == -1)
-		return 1;
+	if (di->signum != 0) {
+		if (asprintf(&tmp_path, "/core-%s-%d", comm_base,
+			     di->pid) == -1) {
+			return 1;
+		}
 
-	di->elf_fd = shm_open(tmp_path, O_CREAT|O_EXCL|O_RDWR,
-			      S_IRUSR|S_IWUSR);
-	if (di->elf_fd < 0) {
-		info("unable to create shared object \'%s\': %s", tmp_path,
-		     strerror(errno));
+		di->elf_fd = shm_open(tmp_path, O_CREAT|O_EXCL|O_RDWR,
+				      S_IRUSR|S_IWUSR);
+		if (di->elf_fd < 0) {
+			info("unable to create shared object \'%s\': %s", tmp_path,
+			     strerror(errno));
+			free(tmp_path);
+			return 1;
+		}
+		shm_unlink(tmp_path);
 		free(tmp_path);
-		return 1;
-	}
-	shm_unlink(tmp_path);
-	free(tmp_path);
 
-	if (asprintf(&tmp_path, "%s/core", di->dst_dir) == -1)
-		return 1;
-	di->core_path = tmp_path;
+		if (asprintf(&tmp_path, "%s/core", di->dst_dir) == -1)
+			return 1;
+		di->core_path = tmp_path;
 
-	di->core_fd = open(di->core_path, O_CREAT|O_RDWR, S_IRUSR|S_IWUSR);
-	if (di->core_fd < 0) {
-		info("unable to create core \'%s\': %s", di->core_path,
-		     strerror(errno));
-		return 1;
+		di->core_fd = open(di->core_path, O_CREAT|O_RDWR, S_IRUSR|S_IWUSR);
+		if (di->core_fd < 0) {
+			info("unable to create core \'%s\': %s", di->core_path,
+			     strerror(errno));
+			return 1;
+		}
+	} else {
+		/* disable core-related dumping */
+		di->cfg->prog_config.dump_fat_core = 0;
+		di->cfg->prog_config.dump_auxv_so_list = 0;
+		di->cfg->prog_config.dump_pthread_list = 0;
+		di->cfg->prog_config.dump_robust_mutex_list = 0;
+		di->cfg->prog_config.stack.dump_stacks = 0;
+		di->cfg->prog_config.write_debug_log = 0;
 	}
 
 	if (di->cfg->prog_config.dump_fat_core) {
@@ -1950,7 +1962,7 @@ static int map_is_interesting(struct dump_info *di, const char *name,
 /*
  * Iterates over all maps and dumps the selected ones.
  */
-static int dump_maps(struct dump_info *di)
+static int dump_maps(struct dump_info *di, int get_only)
 {
 #define MAPS_LINE_MAXSIZE 8192
 	unsigned long start;
@@ -1990,6 +2002,11 @@ static int dump_maps(struct dump_info *di)
 		/* only interested in readable maps */
 		if (perms[0] != 'r')
 			continue;
+
+		if (get_only) {
+			add_vma(di, start, end, end, start, 0);
+			continue;
+		}
 
 		/* find 6th item: man proc(5) */
 		p = perms;
@@ -2259,6 +2276,10 @@ static int add_symbol_map_entry(struct dump_info *di, off64_t core_pos,
 	size_t len;
 	FILE *f;
 	int ret;
+
+	/* do not create symbol map if core-related dumps are disabled */
+	if (di->core_fd < 0)
+		return 0;
 
 	len = strlen(di->dst_dir) + strlen("/symbol.map") + 1;
 	tmp_path = malloc(len);
@@ -2536,7 +2557,6 @@ static int copy_link(const char *dest, const char *src)
 	/* truncate when too long */
 	if (ret > sb.st_size)
 		ret = sb.st_size;
-
 	/* readlink does not terminate the string */
 	linkname[ret] = 0;
 
@@ -3164,12 +3184,16 @@ static void do_dump(struct dump_info *di, int argc, char *argv[])
 	if (init_log(di) != 0)
 		info("failed to init debug log");
 
-	/* dump up until first vma */
-	if (init_src_core(di, STDIN_FILENO) != 0)
-		fatal("unable to initialize core");
+	if (di->core_fd >= 0) {
+		/* dump up until first vma */
+		if (init_src_core(di, STDIN_FILENO) != 0)
+			fatal("unable to initialize core");
 
-	/* log the vma info we found */
-	log_vmas(di);
+		/* log the vma info we found */
+		log_vmas(di);
+	} else {
+		dump_maps(di, 1);
+	}
 
 	/* copy intersting /proc data (if configured) */
 	if (di->cfg->prog_config.write_proc_info)
@@ -3191,42 +3215,48 @@ static void do_dump(struct dump_info *di, int argc, char *argv[])
 	if (di->cfg->prog_config.dump_robust_mutex_list)
 		get_robust_mutex_list(di);
 
-	/* dump any maps configured for dumping */
-	if (di->cfg->prog_config.maps.nglobs > 0)
-		dump_maps(di);
+	if (di->core_fd >= 0) {
+		/* dump any maps configured for dumping */
+		if (di->cfg->prog_config.maps.nglobs > 0)
+			dump_maps(di, 0);
 
-	/* dump any buffers configured for dumping */
-	get_interesting_buffers(di);
+		/* dump any buffers configured for dumping */
+		get_interesting_buffers(di);
+	}
 
 	/* dump registered application data */
 	dyn_dump(di);
 
+	if (di->core_fd >= 0) {
 #ifdef SUPPORT_LIBELF_MODIFY
-	/* add a new elf section containing the dump list */
-	if (add_dumplist_section(di) != 0)
-		info("WARNING: failed to add dump list");
+		/* add a new elf section containing the dump list */
+		if (add_dumplist_section(di) != 0)
+			info("WARNING: failed to add dump list");
 #else
-	info("WARNING: libelf too old to support dump list");
+		info("WARNING: libelf too old to support dump list");
 #endif
 
-	/* dump data to compressed tar'd sparse core file */
-	if (dump_compressed_tar(di) != 0) {
-		/* dump data to compressed core file */
-		if (dump_compressed_core(di) != 0) {
-			/* dump data to sparse core file */
-			dump_mini_core(di);
+		/* dump data to compressed tar'd sparse core file */
+		if (dump_compressed_tar(di) != 0) {
+			/* dump data to compressed core file */
+			if (dump_compressed_core(di) != 0) {
+				/* dump data to sparse core file */
+				dump_mini_core(di);
+			}
 		}
-	}
 
-	/* dump a fat core (if configured) */
-	if (di->cfg->prog_config.dump_fat_core)
-		dump_fat_core(di);
+		/* dump a fat core (if configured) */
+		if (di->cfg->prog_config.dump_fat_core)
+			dump_fat_core(di);
 
-	/* notify registered apps (if configured) */
-	if (di->cfg->prog_config.live_dumper) {
-		setup_public_subdir(di->dst_dir, "proc");
-		setup_public_subdir(di->dst_dir, "dumps");
-		trigger_live_dump(di, argv[0]);
+		/* notify registered apps (if configured) */
+		if (di->cfg->prog_config.live_dumper) {
+			setup_public_subdir(di->dst_dir, "proc");
+			setup_public_subdir(di->dst_dir, "dumps");
+			trigger_live_dump(di, argv[0]);
+		}
+	} else {
+		info("dump path: %s", di->dst_dir);
 	}
 out:
 	/* we are done, cleanup */
