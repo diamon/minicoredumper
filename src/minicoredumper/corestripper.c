@@ -2064,7 +2064,6 @@ static int read_remote(struct dump_info *di, unsigned long addr, void *dst,
 		info("read_remote failed: len=%d, addr=0x%lx, "
 		     "dest=0x%x, errno=\"%s\"",
 		     len, addr, dst, strerror(errno));
-		fatal("BUG");
 		return -1;
 	}
 
@@ -2164,17 +2163,17 @@ static int alloc_remote_data_content(struct dump_info *di, unsigned long addr,
 
 	ret = read_remote(di, addr, dd, sizeof(*dd));
 	if (ret != 0)
-		return ret;
+		return EFAULT;
 
 	/* abort if we should ignore this dump */
 	if (dd->dump_scope > di->cfg->prog_config.dump_scope)
-		return -1;
+		return EACCES;
 
 	if (dd->ident) {
 		ret = alloc_remote_string(di, (unsigned long)dd->ident,
 					  &dd->ident);
 		if (ret != 0)
-			return ret;
+			return EFAULT;
 
 		/* abort if invalid ident */
 		if (invalid_ident(dd->ident)) {
@@ -2182,7 +2181,7 @@ static int alloc_remote_data_content(struct dump_info *di, unsigned long addr,
 			dd->fmt = NULL;
 			dd->es = NULL;
 			free_dump_data_content(dd);
-			return -1;
+			return EINVAL;
 		}
 	}
 
@@ -2194,7 +2193,7 @@ static int alloc_remote_data_content(struct dump_info *di, unsigned long addr,
 			dd->fmt = NULL;
 			dd->es = NULL;
 			free_dump_data_content(dd);
-			return ret;
+			return EFAULT;
 		}
 	}
 
@@ -2217,7 +2216,7 @@ static int alloc_remote_data_content(struct dump_info *di, unsigned long addr,
 	dd->es = es;
 	if (ret != 0) {
 		free_dump_data_content(dd);
-		return ret;
+		return EFAULT;
 	}
 
 	return 0;
@@ -2452,7 +2451,7 @@ static int dyn_dump(struct dump_info *di)
 	/* read in pointer to head of dump data */
 	ret = read_remote(di, addr, &version, sizeof(version));
 	if (ret != 0)
-		return ret;
+		return EFAULT;
 
 	if (version != DUMP_DATA_VERSION) {
 		info("libminicoredumper: dump data version mismatch:"
@@ -2470,7 +2469,7 @@ static int dyn_dump(struct dump_info *di)
 	/* read in pointer to head of dump data */
 	ret = read_remote(di, addr, &dd_addr, sizeof(unsigned long));
 	if (ret != 0)
-		return ret;
+		return EFAULT;
 
 	if (dd_addr == 0) {
 		info("libminicoredumper: no registered variables");
@@ -2486,8 +2485,15 @@ static int dyn_dump(struct dump_info *di)
 	for (iter = (struct mcd_dump_data *)dd_addr; iter; iter = dd->next) {
 		/* read in dd and its content */
 		ret = alloc_remote_data_content(di, (unsigned long)iter, dd);
-		if (ret != 0)
-			continue;
+		if (ret != 0) {
+			/*
+			 * EACCESS is returned if dd was read,
+			 * but this data is out of scope.
+			 */
+			if (ret == EACCES)
+				continue;
+			goto out;
+		}
 
 		/* dump the registered data... */
 		if (dd->ident) {
