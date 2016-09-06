@@ -1612,9 +1612,14 @@ static int store_sym_data(struct dump_info *di, const char *lib,
 	if (!sd)
 		return -1;
 
-	/* add new node to front of list */
-	sd->next = di->sym_data_list;
-	di->sym_data_list = sd;
+	/* add new node to end of list */
+	if (!di->sym_data_list) {
+		di->sym_data_list = sd;
+	} else {
+		for (cur = di->sym_data_list; cur->next; cur = cur->next)
+			/* NOP */ ;
+		cur->next = sd;
+	}
 
 	return 0;
 }
