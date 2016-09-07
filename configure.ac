@@ -10,7 +10,7 @@
 AC_PREREQ(2.5)
 AC_INIT(minicoredumper, 1.0.2, john.ogness@linutronix.de)
 AC_CONFIG_MACRO_DIR(m4)
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([subdir-objects])
 
 AM_CONFIG_HEADER(config.h)
 
