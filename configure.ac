@@ -125,7 +125,7 @@ AS_CASE(["$with_minicoredumper_dbusd"],
 AM_CONDITIONAL([COND_MINICOREDUMPER_DBUSD], [test "$WANT_MINICOREDUMPER_DBUSD" -eq 1 -a "x$with_dbus" = "xyes" -o "$HAVE_DBUS" -eq 1])
 
 AC_ARG_WITH([minicoredumper_regd],
-	    [AS_HELP_STRING([--with-minicoredumper_regd],
+	    [AS_HELP_STRING([--without-minicoredumper_regd],
 	    [build minicoredumper_regd daemon @<:@default=with@:>@])])
 AS_CASE(["$with_minicoredumper_regd"],
 	[yes], [WANT_MINICOREDUMPER_REGD=1],
