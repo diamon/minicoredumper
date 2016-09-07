@@ -1,0 +1,96 @@
+#!/bin/sh
+
+# Copyright (c) 2016 Ericsson AB
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+#    this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+usage_exit()
+{
+	echo "error: $2" 1>&2
+	echo "usage: $1 <absolute-dump-path> <dump-scope>" 1>&2
+	exit 1
+}
+
+if [ $# -ne 2 ]; then
+	usage_exit "$0" 'wrong number of arguments'
+fi
+
+mcdbin=''
+
+char0=`echo "$1" | cut -b 1`
+if [ "$char0" != "/" ]; then
+	usage_exit "$0" 'dump path not absolute'
+fi
+
+char0=`echo "$0" | cut -b 1`
+if [ "$char0" = '.' -o "$char0" = '/' ]; then
+	# check for minicoredumper next to minicoredumper_trigger
+	mcdbase=`dirname "$0"`
+	mcdlocalbin="${mcdbase}/minicoredumper"
+	if [ -x "$mcdlocalbin" ]; then
+		mcdbin="$mcdlocalbin"
+	fi
+fi
+
+if [ -z "$mcdbin" ]; then
+	# check PATH for minicoredumper
+	mcdbin=`which minicoredumper`
+fi
+
+if [ -z "$mcdbin" -o ! -x "$mcdbin" ]; then
+	usage_exit "$0" 'unable to locate minicoredumper'
+fi
+
+mkdir -p "$1"
+
+cfgfile=`tempfile`
+rcptfile=`tempfile`
+
+# create config with specified dump dir
+cat > $cfgfile << EOF
+{
+    "base_dir": "$1",
+    "watch": [
+        {
+            "recept": "$rcptfile"
+        }
+    ]
+}
+EOF
+
+# create general recept with specified scope
+cat > $rcptfile << EOF
+{
+    "dump_scope": $2,
+    "live_dumper": true
+}
+EOF
+
+# call minicoredumper with pid=0 so we don't dump ourself
+"$mcdbin" 0 `id -u` `id -g` 0 `date -u +%s` "`uname -n`" \
+	"`basename $0`" "$cfgfile"
+rc=$?
+
+rm -f $cfgfile $rcptfile
+
+exit $rc
