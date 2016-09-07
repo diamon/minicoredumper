@@ -124,6 +124,15 @@ AS_CASE(["$with_minicoredumper_dbusd"],
 	[WANT_MINICOREDUMPER_DBUSD=1])
 AM_CONDITIONAL([COND_MINICOREDUMPER_DBUSD], [test "$WANT_MINICOREDUMPER_DBUSD" -eq 1 -a "x$with_dbus" = "xyes" -o "$HAVE_DBUS" -eq 1])
 
+AC_ARG_WITH([minicoredumper_regd],
+	    [AS_HELP_STRING([--with-minicoredumper_regd],
+	    [build minicoredumper_regd daemon @<:@default=with@:>@])])
+AS_CASE(["$with_minicoredumper_regd"],
+	[yes], [WANT_MINICOREDUMPER_REGD=1],
+	[no], [WANT_MINICOREDUMPER_REGD=0],
+	[WANT_MINICOREDUMPER_REGD=1])
+AM_CONDITIONAL([COND_MINICOREDUMPER_REGD], [test "$WANT_MINICOREDUMPER_REGD" -eq 1])
+
 AC_ARG_WITH([minicoredumper_trigger],
 	    [AS_HELP_STRING([--without-minicoredumper_trigger],
 	    [build minicoredumper_trigger tool @<:@default=with@:>@])])
@@ -170,6 +179,7 @@ AC_OUTPUT([Makefile
 	   src/libminicoredumper/minicoredumper.pc
 	   src/minicoredumper/Makefile
 	   src/minicoredumper_dbusd/Makefile
+	   src/minicoredumper_regd/Makefile
 	   src/minicoredumper_trigger/Makefile
 	   src/minicoredumper_demo/Makefile
 	   lib/Makefile])

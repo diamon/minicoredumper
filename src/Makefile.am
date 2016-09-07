@@ -19,6 +19,10 @@ if COND_MINICOREDUMPER_DBUSD
 SUBDIRS += minicoredumper_dbusd
 endif
 
+if COND_MINICOREDUMPER_REGD
+SUBDIRS += minicoredumper_regd
+endif
+
 if COND_LIBMINICOREDUMPER
 SUBDIRS += libminicoredumper
 endif
