@@ -3417,8 +3417,10 @@ static int do_all_dumps(struct dump_info *di, int argc, char *argv[])
 			free(pids);
 	}
 
-	/* dump crashed task */
-	do_dump(di, argc, argv);
+	if (core_pid != 0) {
+		/* dump crashed task */
+		do_dump(di, argc, argv);
+	}
 
 	free(di->dst_dir);
 
