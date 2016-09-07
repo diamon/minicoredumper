@@ -1645,26 +1645,47 @@ static void cleanup_di(struct dump_info *di)
 
 	close_sym(di);
 
-	if (di->core_fd >= 0)
+	if (di->core_fd >= 0) {
 		close(di->core_fd);
-	if (di->fatcore_fd >= 0)
+		di->core_fd = -1;
+	}
+	if (di->fatcore_fd >= 0) {
 		close(di->fatcore_fd);
-	if (di->elf_fd >= 0)
+		di->fatcore_fd = -1;
+	}
+	if (di->elf_fd >= 0) {
 		close(di->elf_fd);
-	if (di->mem_fd >= 0)
+		di->elf_fd = -1;
+	}
+	if (di->mem_fd >= 0) {
 		close(di->mem_fd);
-	if (di->info_file)
+		di->mem_fd = -1;
+	}
+	if (di->info_file) {
 		fclose(di->info_file);
+		di->info_file = NULL;
+	}
 
 	/* delete unused (empty) core if we have compressed */
-	if (di->cfg->prog_config.core_compressed)
+	if (di->cfg && di->cfg->prog_config.core_compressed)
 		unlink(di->core_path);
 
-	free(di->tsks);
-	free(di->core_path);
-	free(di->dst_dir);
-	free(di->comm);
-	free(di->exe);
+	if (di->tsks) {
+		free(di->tsks);
+		di->tsks = NULL;
+	}
+	if (di->core_path) {
+		free(di->core_path);
+		di->core_path = NULL;
+	}
+	if (di->comm) {
+		free(di->comm);
+		di->comm = NULL;
+	}
+	if (di->exe) {
+		free(di->exe);
+		di->exe = NULL;
+	}
 	while (di->core_file) {
 		core_data = di->core_file;
 		di->core_file = core_data->next;
@@ -1676,7 +1697,10 @@ static void cleanup_di(struct dump_info *di)
 		free(vma);
 	}
 
-	free_config(di->cfg);
+	if (di->cfg) {
+		free_config(di->cfg);
+		di->cfg = NULL;
+	}
 }
 
 static int get_stack_pointer(pid_t pid, unsigned long *addr)
@@ -3186,7 +3210,8 @@ static void do_dump(struct dump_info *di, int argc, char *argv[])
 
 	ret = init_di(di, argc, argv);
 	if (ret == 1) {
-		fatal("unable to create new dump info instance");
+		info("unable to create new dump info instance");
+		goto out;
 	} else if (ret == 2) {
 		info("no watch for comm=%s exe=%s", di->comm, di->exe);
 		goto out;
