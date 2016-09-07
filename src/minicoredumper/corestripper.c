@@ -47,6 +47,7 @@
 #include <sys/mman.h>
 #include <sys/procfs.h>
 #include <sys/syscall.h>
+#include <sys/ptrace.h>
 #include <linux/futex.h>
 #include <elfutils/version.h>
 
@@ -61,6 +62,14 @@
 
 #if _ELFUTILS_PREREQ(0, 167)
 #define SUPPORT_LIBELF_MODIFY
+#endif
+
+#ifndef PTRACE_SEIZE
+#define PTRACE_SEIZE 0x4206
+#endif
+
+#ifndef PTRACE_INTERRUPT
+#define PTRACE_INTERRUPT 0x4207
 #endif
 
 extern int start_dbus_gloop(struct dump_info *di, char *app_name);
@@ -106,79 +115,6 @@ void fatal(const char *fmt, ...)
 	}
 
 	exit(1);
-}
-
-static int trigger_live_dump(struct dump_info *di, char *app_name)
-{
-#ifdef USE_DBUS
-	return start_dbus_gloop(di, app_name);
-#else
-	const char *monitor_fname;
-	char *tmp_path;
-	int err = -1;
-	FILE *f;
-	int fd;
-
-	info("Corestripper live dumper (inotify)");
-	info("dump path    : %s", di->dst_dir);
-	info("dump scope   : %d", di->cfg->prog_config.dump_scope);
-
-	monitor_fname = getenv(DUMP_DATA_MONITOR_ENV);
-	if (!monitor_fname || monitor_fname[0] != '/') {
-		info("%s not defined, not triggering live dump",
-		     DUMP_DATA_MONITOR_ENV);
-		return -1;
-	}
-
-	info("dump trigger : %s", monitor_fname);
-
-	if (asprintf(&tmp_path, "%s/monitor.XXXXXX", di->dst_dir) == -1) {
-		info("error: failed to allocate temp string");
-		return -1;
-	}
-
-	fd = mkstemp(tmp_path);
-	if (fd < 0) {
-		info("error: failed to create temp file");
-		goto out;
-	}
-
-	f = fdopen(fd, "w");
-	if (!f) {
-		info("error: failed to reopen temp file");
-		close(fd);
-		goto out;
-	}
-
-	fprintf(f, "version=%d\n", DUMP_DATA_VERSION);
-	fprintf(f, "scope=%d\n", di->cfg->prog_config.dump_scope);
-	fprintf(f, "path=%s\n", di->dst_dir);
-
-	fclose(f);
-
-	chmod(tmp_path, 0644);
-
-	if (rename(tmp_path, monitor_fname) != 0) {
-		info("error: failed to rename %s to %s", tmp_path,
-		     monitor_fname);
-		unlink(tmp_path);
-		goto out;
-	}
-
-	f = fopen(monitor_fname, "a");
-	if (!f) {
-		info("error: failed to append to %s", monitor_fname);
-		goto out;
-	}
-
-	/* inotify trigger */
-	fclose(f);
-
-	err = 0;
-out:
-	free(tmp_path);
-	return err;
-#endif
 }
 
 static ssize_t read_file_fd(int fd, char *dst, int len)
@@ -488,9 +424,6 @@ static int init_di(struct dump_info *di, int argc, char *argv[])
 			break;
 		comm_base = p + 1;
 	}
-
-	di->dst_dir = alloc_dst_dir(di->timestamp, di->cfg->base_dir,
-				    comm_base, di->pid);
 
 	if (get_task_list(di) != 0)
 		return 1;
@@ -3162,28 +3095,6 @@ static void write_proc_info(struct dump_info *di)
 	copy_proc_files(di, 1, "fd", 1);
 }
 
-static void setup_public_subdir(const char *base, const char *subdir)
-{
-	size_t size;
-	char *name;
-
-	size = strlen(base) + 1 + strlen(subdir) + 1;
-
-	name = malloc(size);
-	if (!name)
-		return;
-
-	snprintf(name, size, "%s/%s", base, subdir);
-
-	mkdir(base, 0755);
-	chmod(base, 0755);
-
-	mkdir(name, 01777);
-	chmod(name, 01777);
-
-	free(name);
-}
-
 #ifdef SUPPORT_LIBELF_MODIFY
 static int add_dumplist_section(struct dump_info *di)
 {
@@ -3284,19 +3195,234 @@ static void do_dump(struct dump_info *di, int argc, char *argv[])
 		/* dump a fat core (if configured) */
 		if (di->cfg->prog_config.dump_fat_core)
 			dump_fat_core(di);
-
-		/* notify registered apps (if configured) */
-		if (di->cfg->prog_config.live_dumper) {
-			setup_public_subdir(di->dst_dir, "proc");
-			setup_public_subdir(di->dst_dir, "dumps");
-			trigger_live_dump(di, argv[0]);
-		}
 	} else {
 		info("dump path: %s", di->dst_dir);
 	}
 out:
 	/* we are done, cleanup */
 	cleanup_di(di);
+}
+
+static long ptrace_tree(enum __ptrace_request request, pid_t pid)
+{
+	char buf[64];
+	struct dirent *de;
+	DIR *d;
+
+	snprintf(buf, sizeof(buf), "/proc/%d/task", pid);
+	d = opendir(buf);
+	if (!d)
+		return -1;
+
+	while (1) {
+		de = readdir(d);
+		if (!de)
+			break;
+		if (de->d_name[0] == '.')
+			continue;
+		ptrace(request, atoi(de->d_name), NULL, NULL);
+	}
+
+	closedir(d);
+
+	return 0;
+}
+
+static int do_lock(pthread_mutex_t *m)
+{
+	int ret;
+
+	ret = pthread_mutex_lock(m);
+	if (ret != 0) {
+		if (ret != EOWNERDEAD)
+			return -1;
+
+		pthread_mutex_consistent(m);
+	}
+
+	return 0;
+}
+
+static void alloc_registered_pids(pid_t core_pid, pid_t **pids, int *n)
+{
+	struct mcd_shm_item *si;
+	struct mcd_shm_head *sh;
+	size_t map_size;
+	struct stat sb;
+	int fd;
+	int i;
+
+	*pids = NULL;
+	*n = 0;
+
+	fd = shm_open(MCD_SHM_PATH, O_RDWR, S_IRUSR|S_IWUSR);
+	if (fd < 0)
+		return;
+
+	if (fstat(fd, &sb) != 0)
+		return;
+
+	map_size = sb.st_size;
+	if (map_size < sizeof(*sh))
+		return;
+
+	sh = mmap(NULL, map_size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+	if (sh == MAP_FAILED)
+		return;
+
+	if (do_lock(&sh->m) != 0)
+		goto out;
+
+	if (map_size < sizeof(*sh) + (sh->count * sizeof(*si)))
+		goto out2;
+
+	*pids = malloc(sizeof(pid_t) * sh->count);
+	if (!*pids)
+		goto out2;
+
+	si = (struct mcd_shm_item *)(sh + 1);
+
+	for (i = 0; i < sh->count; i++) {
+		if (si->pid == core_pid) {
+			/* force-unregister core task */
+			si->pid = 0;
+			si->data = 0;
+			sh->count--;
+			info("unregistered core task: %d\n", core_pid);
+		}
+		(*pids)[i] = si->pid;
+		si++;
+	}
+	*n = sh->count;
+out2:
+	pthread_mutex_unlock(&sh->m);
+out:
+	munmap(sh, map_size);
+}
+
+static int do_all_dumps(struct dump_info *di, int argc, char *argv[])
+{
+	const char *recept;
+	bool live_dumper;
+	char *comm_base;
+	pid_t core_pid;
+	char *p;
+	char *ext_argv[10] = {
+		argv[0],
+		argv[1],
+		argv[2],
+		argv[3],
+		"0",
+		argv[5],
+		argv[6],
+		"",
+		argv[8],
+		NULL
+	};
+
+	if (argc == 8) {
+		di->cfg = init_config("/etc/minicoredumper/"
+				      "minicoredumper.cfg.json");
+	} else if (argc == 9) {
+		info("using custom minicoredumper cfg: %s", argv[8]);
+		di->cfg = init_config(argv[8]);
+	} else {
+		fatal("wrong arg count, check /proc/sys/kernel/core_pattern");
+	}
+
+	if (!di->cfg)
+		fatal("unable to init config");
+
+	check_config(di);
+
+	core_pid = strtol(argv[1], &p, 10);
+	if (*p != 0)
+		return 1;
+
+	di->pid = core_pid;
+
+	di->timestamp = strtol(argv[5], &p, 10);
+	if (*p != 0)
+		return 1;
+
+	di->comm = alloc_comm(argv[7], di->pid);
+	if (!di->comm)
+		return 1;
+
+	comm_base = di->comm;
+	while (1) {
+		p = strchr(comm_base, '/');
+		if (!p)
+			break;
+		comm_base = p + 1;
+	}
+
+	di->dst_dir = alloc_dst_dir(di->timestamp, di->cfg->base_dir,
+				    comm_base, di->pid);
+	if (!di->dst_dir)
+		return 1;
+
+	recept = get_prog_recept(di->cfg, di->comm, di->exe);
+	if (!recept)
+		return 1;
+
+	if (init_prog_config(di->cfg, recept) != 0)
+		return 1;
+
+	live_dumper = di->cfg->prog_config.live_dumper;
+
+	cleanup_di(di);
+
+	if (live_dumper) {
+		char pidstr[16];
+		pid_t *pids;
+		int n;
+		int i;
+
+		alloc_registered_pids(core_pid, &pids, &n);
+
+		/* pause all registered tasks */
+		for (i = 0; i < n; i++) {
+			if (pids[i] == 0)
+				continue;
+			if (pids[i] == core_pid)
+				continue;
+			if (ptrace_tree(PTRACE_SEIZE, pids[i]) != 0)
+				pids[i] = 0;
+			else
+				ptrace_tree(PTRACE_INTERRUPT, pids[i]);
+		}
+
+		/* dump all registered tasks */
+		for (i = 0; i < n; i++) {
+			if (pids[i] == 0)
+				continue;
+			if (pids[i] == core_pid)
+				continue;
+			snprintf(pidstr, sizeof(pidstr), "%d", pids[i]);
+			ext_argv[1] = &pidstr[0];
+			do_dump(di, argc, ext_argv);
+		}
+
+		/* resume all registered tasks */
+		for (i = 0; i < n; i++) {
+			if (pids[i] == 0)
+				continue;
+			if (pids[i] == core_pid)
+				continue;
+			ptrace_tree(PTRACE_DETACH, pids[i]);
+		}
+
+		if (pids)
+			free(pids);
+	}
+
+	/* dump crashed task */
+	do_dump(di, argc, argv);
+
+	free(di->dst_dir);
+
+	return 0;
 }
 
 int main(int argc, char *argv[])
@@ -3327,7 +3453,7 @@ int main(int argc, char *argv[])
 		fatal("wrong amount of command line parameters");
 	}
 
-	do_dump(&di, argc, argv);
+	do_all_dumps(&di, argc, argv);
 
 	closelog();
 	munlockall();

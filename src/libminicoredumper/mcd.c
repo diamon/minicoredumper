@@ -29,12 +29,15 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/inotify.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 #include "dump_data_private.h"
 #include "common.h"
 #include "minicoredumper.h"
 
 static pthread_mutex_t dump_mutex = PTHREAD_MUTEX_INITIALIZER;
+static int registered;
 
 struct mcd_dump_data *mcd_dump_data_head;
 int mcd_dump_data_version = DUMP_DATA_VERSION;
@@ -365,6 +368,101 @@ void mcd_dump_data_dbus_stop(void)
 }
 #endif /* USE_DBUS */
 
+static int mcd_request(int req)
+{
+	uint32_t dval = 0x55555555;
+	struct sockaddr_un addr;
+	struct mcd_regdata data;
+	struct msghdr msgh;
+	struct iovec iov;
+	int err = -1;
+	ssize_t n;
+	int ret;
+	int fd;
+
+	memset(&addr, 0, sizeof(addr));
+	addr.sun_family = AF_UNIX;
+	snprintf(addr.sun_path, sizeof(addr.sun_path), "x%s.%d",
+		 MCD_SOCK_PATH, getpid());
+	addr.sun_path[0] = 0;
+
+	fd = socket(AF_UNIX, SOCK_DGRAM, 0);
+	if (fd < 0)
+		return err;
+
+	ret = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
+	if (ret != 0)
+		goto out;
+
+	memset(&data, 0, sizeof(data));
+	data.req = req;
+	data.data = dval;
+
+	iov.iov_base = &data;
+	iov.iov_len = sizeof(data);
+
+	memset(&addr, 0, sizeof(addr));
+	addr.sun_family = AF_UNIX;
+	snprintf(addr.sun_path, sizeof(addr.sun_path), "x%s", MCD_SOCK_PATH);
+	addr.sun_path[0] = 0;
+
+	memset(&msgh, 0, sizeof(msgh));
+	msgh.msg_iov = &iov;
+	msgh.msg_iovlen = 1;
+	msgh.msg_name = (void *)&addr;
+	msgh.msg_namelen = sizeof(addr);
+
+	do {
+		n = sendmsg(fd, &msgh, 0);
+		if (n < 0 && errno == EINTR)
+			continue;
+		else if (n != sizeof(data))
+			goto out;
+		else
+			break;
+	} while (1);
+
+	do {
+		n = recvmsg(fd, &msgh, 0);
+		if (n < 0 && errno == EINTR)
+			continue;
+		else if (n != sizeof(data))
+			goto out;
+		else
+			break;
+	} while (1);
+
+	if (~data.data != dval)
+		goto out;
+
+	err = 0;
+out:
+	close(fd);
+	return err;
+}
+
+static void handle_register(void)
+{
+	if (registered)
+		return;
+
+	if (mcd_request(MCD_REGISTER) != 0)
+		return;
+
+	registered = 1;
+}
+
+static void handle_unregister(void)
+{
+	if (!registered)
+		return;
+
+	if (mcd_request(MCD_UNREGISTER) != 0)
+		return;
+
+	registered = 0;
+}
+
 static void free_dump_data(struct mcd_dump_data *dd)
 {
 	if (dd->ident)
@@ -413,6 +511,8 @@ static int append_dump_data(struct mcd_dump_data *dump_data)
 	/* add to end of list */
 	iter->next = dump_data;
 	err = 0;
+
+	handle_register();
 out:
 	pthread_mutex_unlock(&dump_mutex);
 
@@ -641,6 +741,8 @@ int mcd_dump_data_unregister(mcd_dump_data_t dd)
 		free_dump_data(iter);
 	else
 		err = ENOKEY;
+
+	handle_unregister();
 
 	pthread_mutex_unlock(&dump_mutex);
 
