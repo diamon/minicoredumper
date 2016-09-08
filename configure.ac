@@ -85,18 +85,6 @@ PKG_CHECK_MODULES([libelf], [libelf], [],
 		  AC_CHECK_HEADERS([gelf.h], [libelf_LIBS=-lelf],
 				   [AC_MSG_ERROR([gelf.h missing!])]))
 
-dnl default-enabled dbus feature
-AC_ARG_WITH([dbus],
-	    [AS_HELP_STRING([--with-dbus],
-	    [link with D-Bus to use notification features @<:@default=autodetect@:>@])],
-	    [],
-	    [with_dbus=check])
-AS_CASE(["$with_dbus"],
-	[yes], [PKG_CHECK_MODULES([dbus], [dbus-1 dbus-glib-1 uuid], [HAVE_DBUS=1])],
-	[no], [HAVE_DBUS=0],
-	[PKG_CHECK_MODULES([dbus], [dbus-1 dbus-glib-1 uuid], [HAVE_DBUS=1], [HAVE_DBUS=0])])
-AM_CONDITIONAL([USE_DBUS], [test "x$with_dbus" = "xyes" -o "$HAVE_DBUS" -eq 1])
-
 AC_ARG_WITH([coreinject],
 	    [AS_HELP_STRING([--without-coreinject],
 	    [build coreinject tool @<:@default=with@:>@])])
@@ -114,15 +102,6 @@ AS_CASE(["$with_minicoredumper"],
 	[no], [WANT_MINICOREDUMPER=0],
 	[WANT_MINICOREDUMPER=1])
 AM_CONDITIONAL([COND_MINICOREDUMPER], [test "$WANT_MINICOREDUMPER" -eq 1])
-
-AC_ARG_WITH([minicoredumper_dbusd],
-	    [AS_HELP_STRING([--without-minicoredumper_dbusd],
-	    [build minicoredumper_dbusd daemon @<:@default=with@:>@])])
-AS_CASE(["$with_minicoredumper_dbusd"],
-	[yes], [WANT_MINICOREDUMPER_DBUSD=1],
-	[no], [WANT_MINICOREDUMPER_DBUSD=0],
-	[WANT_MINICOREDUMPER_DBUSD=1])
-AM_CONDITIONAL([COND_MINICOREDUMPER_DBUSD], [test "$WANT_MINICOREDUMPER_DBUSD" -eq 1 -a "x$with_dbus" = "xyes" -o "$HAVE_DBUS" -eq 1])
 
 AC_ARG_WITH([minicoredumper_regd],
 	    [AS_HELP_STRING([--without-minicoredumper_regd],
@@ -171,14 +150,12 @@ dnl last but not least
 AC_OUTPUT([Makefile
 	   src/Makefile
 	   src/api/Makefile
-	   src/dbus/Makefile
 	   src/compat/Makefile
 	   src/coreinject/Makefile
 	   src/libminicoredumper/Makefile
 	   src/libminicoredumper/minicoredumper-uninstalled.pc
 	   src/libminicoredumper/minicoredumper.pc
 	   src/minicoredumper/Makefile
-	   src/minicoredumper_dbusd/Makefile
 	   src/minicoredumper_regd/Makefile
 	   src/minicoredumper_trigger/Makefile
 	   src/minicoredumper_demo/Makefile

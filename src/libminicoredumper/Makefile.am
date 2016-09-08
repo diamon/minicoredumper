@@ -17,23 +17,11 @@ lib_LTLIBRARIES = libminicoredumper.la
 libminicoredumper_la_SOURCES = mcd.c dump_data_private.h \
 			       ../common/common.c ../common/common.h
 
-if USE_DBUS
-dbus_mcd.h: $(top_srcdir)/src/dbus/interface.xml
-	dbus-binding-tool --prefix=value_object --mode=glib-client $< > $@
-
-dbus_mcd.c: dbus_mcd.h
-libminicoredumper_la_LDFLAGS =
-libminicoredumper_la_SOURCES += dbus_mcd.c
-dbus_CFLAGS += -DUSE_DBUS -I$(top_srcdir)/src/dbus -I$(top_srcdir)/src/compat
-else
 libminicoredumper_la_LDFLAGS = -lpthread
-endif
-
 libminicoredumper_la_CFLAGS = -g -Wall -std=c99 -D_GNU_SOURCE $(MCD_WERROR) \
-			      $(dbus_CFLAGS) -I$(top_srcdir)/src/api \
+			      -I$(top_srcdir)/src/api \
 			      -I$(top_srcdir)/src/common \
 			      -DG_LOG_DOMAIN=\"minicoredumper\"
-libminicoredumper_la_LIBADD = @dbus_LIBS@
 include_HEADERS = $(top_srcdir)/src/api/minicoredumper.h
 
 # 1) If the library source code has changed at all since the last update, then

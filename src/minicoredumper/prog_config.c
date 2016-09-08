@@ -581,7 +581,7 @@ static void set_config_defaults(struct prog_config *cfg)
 	cfg->dump_pthread_list = true;
 	cfg->dump_robust_mutex_list = true;
 
-	/* no dbus notification */
+	/* do not dump non-crashing registered applications */
 	cfg->live_dumper = false;
 
 	/* no debugging data */

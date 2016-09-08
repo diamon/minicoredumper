@@ -14,23 +14,11 @@ minicoredumper_SOURCES = corestripper.c corestripper.h \
 			 prog_config.c prog_config.h \
 			 ../common/common.c ../common/elf_dumplist.c
 
-if USE_DBUS
-
-dbus_mcd.h: $(top_srcdir)/src/dbus/interface.xml
-	dbus-binding-tool --prefix=value_object --mode=glib-client $< > $@
-
-dbus_mcd.c: dbus_mcd.h
-
-minicoredumper_SOURCES += dbus_mcd.c
-dbus_CFLAGS += -DUSE_DBUS -I$(top_srcdir)/src/dbus -I$(top_srcdir)/src/compat
-endif
-
 minicoredumper_LDADD = $(top_builddir)/lib/libjson.a \
 		       -lthread_db -lrt -lpthread \
-		       $(dbus_LIBS) \
 		       $(libelf_LIBS)
 minicoredumper_CFLAGS = -g -Wall -std=c99 -D_GNU_SOURCE $(MCD_WERROR) \
-			-D_LARGEFILE64_SOURCE $(dbus_CFLAGS) \
+			-D_LARGEFILE64_SOURCE \
 			-I$(top_srcdir)/lib \
 			-I$(top_srcdir)/src/api \
 			-I$(top_srcdir)/src/common \

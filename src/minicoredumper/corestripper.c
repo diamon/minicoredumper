@@ -72,8 +72,6 @@
 #define PTRACE_INTERRUPT 0x4207
 #endif
 
-extern int start_dbus_gloop(struct dump_info *di, char *app_name);
-
 static struct dump_info *global_di;
 static long PAGESZ;
 

@@ -5,7 +5,7 @@
 ## You can do whatever you want with this file.
 ##
 
-SUBDIRS = api dbus compat
+SUBDIRS = api compat
 
 if COND_COREINJECT
 SUBDIRS += coreinject
@@ -13,10 +13,6 @@ endif
 
 if COND_MINICOREDUMPER
 SUBDIRS += minicoredumper
-endif
-
-if COND_MINICOREDUMPER_DBUSD
-SUBDIRS += minicoredumper_dbusd
 endif
 
 if COND_MINICOREDUMPER_REGD

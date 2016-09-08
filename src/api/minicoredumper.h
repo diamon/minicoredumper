@@ -67,22 +67,6 @@ static mcd_dump_data_flags operator|(mcd_dump_data_flags lhs,
 }
 #endif
 
-/*
- * mcd_dump_data_dbus_start - Initialize D-Bus connection
- * Must be called if D-Bus notification is to be used. Note that if
- * libminicoredumper was compiled without D-Bus support, this function
- * will initialize a fallback inotify-based notification method if the
- * environment variable MINICOREDUMPER_MONITOR is specified.
- */
-extern int mcd_dump_data_dbus_start(void);
-
-/*
- * mcd_dump_data_dbus_stop - Shutdown D-Bus connection
- * Shutdown the D-Bus connection or, if D-Bus support is disabled,
- * shutdown the inotify-based notification method.
- */
-extern void mcd_dump_data_dbus_stop(void);
-
 #ifdef __GNUC__
 #define ATTR_FMT(si, ftc) __attribute__ ((format (scanf, si, ftc)))
 #else

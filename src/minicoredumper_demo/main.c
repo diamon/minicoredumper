@@ -62,9 +62,6 @@ int __attribute__((optimize("O0"))) main(int argc, char *argv[])
 	*val3 |= (unsigned long)0x6abc123a << 32;
 #endif
 
-	/* start dbus thread */
-	mcd_dump_data_dbus_start();
-
 	/* register text dumps */
 	/* "This is string 1.\n" */
 	mcd_dump_data_register_text("tdump1.txt", 6, &dd[0],
@@ -124,9 +121,6 @@ int __attribute__((optimize("O0"))) main(int argc, char *argv[])
 	/* unregister dumps */
 	for (s = 0; s < (sizeof(dd) / sizeof(dd[0])); s++)
 		mcd_dump_data_unregister(dd[s]);
-
-	/* stop dbus thread */
-	mcd_dump_data_dbus_stop();
 
 	/* cleanup */
 	free(str2);

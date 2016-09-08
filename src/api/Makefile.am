@@ -1,5 +1,4 @@
-dist_man_MANS = mcd_dump_data_dbus_start.3 mcd_dump_data_register_bin.3 \
-		mcd_dump_data_unregister.3 mcd_dump_data_dbus_stop.3 \
+dist_man_MANS = mcd_dump_data_register_bin.3 mcd_dump_data_unregister.3 \
 		mcd_dump_data_register_text.3
 
 install-data-hook:

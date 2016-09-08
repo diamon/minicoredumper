@@ -5,7 +5,7 @@
 .\" This file has been put into the public domain.
 .\" You can do whatever you want with this file.
 .\"
-.TH MINICOREDUMPER_TRIGGER 1 "2015-11-30" "Ericsson" "minicoredumper"
+.TH MINICOREDUMPER_TRIGGER 1 "2016-09-08" "Ericsson" "minicoredumper"
 .
 .SH NAME
 minicoredumper_trigger \- a tool to trigger dumps for all applications using
@@ -17,25 +17,28 @@ minicoredumper_trigger \- a tool to trigger dumps for all applications using
 .I dump-scope
 .
 .SH DESCRIPTION
-If D-Bus support is enabled,
-.B minicoredumper_trigger
-will signal
-.BR libminicoredumper_dbusd (1)
-to notify all applications registered with
+.B minicoredumper_trigger dumps data registered with
 .BR libminicoredumper (7)
-to dump their data to the specified absolute path
+to the specified absolute path
 .IR dump-directory .
-Otherwise, if the environment variable MINICOREDUMPER_MONITOR exists and
-specifies an absolute path to a file, the specified file will be created
-in order to invoke a fallback trigger mechanism based on
-.BR inotify (7).
-In both cases the applications will dump all data that was registered with
-a scope value less than or equal to the
-.IR dump-scope .
+Only data that was registered with a scope value less than or equal to the
+.I dump-scope
+will be dumped.
+.
+.SH NOTES
+In order to dump the registered data from applications based on
+.BR libminicoredumper (7),
+.B minicoredumper_trigger
+must have permissions to read the shared memory managed by
+.BR minicoredumper_regd (1)
+and permisssions to read the process memory of the applications. If some
+of these permissions are missing,
+.B minicoredumper_trigger
+will dump as much as it can.
 .
 .SH "SEE ALSO"
 .BR minicoredumper (1),
-.BR minicoredumper_dbusd (1),
-.BR libminicoredumper (7)
+.BR libminicoredumper (7),
+.BR minicoredumper_regd (1)
 .PP
 The DiaMon Workgroup: <http://www.diamon.org>

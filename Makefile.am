@@ -7,8 +7,7 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-EXTRA_DIST = etc/dbus-1/system.d/org.ericsson.mcd.conf \
-	     etc/minicoredumper/minicoredumper.cfg.json \
+EXTRA_DIST = etc/minicoredumper/minicoredumper.cfg.json \
 	     etc/minicoredumper/generic.recept.json \
 	     etc/minicoredumper/example.recept.json
 
