@@ -7,17 +7,17 @@ minicoredumper Licensing
     package (but check the individual files to be sure!):
 
       - libminicoredumper is under the GNU LGPLv2.1 license.
-        Copyright (C) 2012-2015 Ericsson AB
+        Copyright (C) 2012-2016 Ericsson AB
 
       - minicoredumper is under a simplified BSD license.
-        Copyright (c) 2012-2015 Ericsson AB
+        Copyright (c) 2012-2016 Ericsson AB
         Copyright (C) 2012, 2013, 2014 James McLaughlin et al.
 
       - minicoredumper_regd is under a simplified BSD license.
         Copyright (c) 2016 Ericsson AB
 
       - coreinject is under a simplified BSD license.
-        Copyright (c) 2012-2015 Ericsson AB
+        Copyright (c) 2012-2016 Ericsson AB
 
       - minicoredumper_demo is under a simplified BSD license.
-        Copyright (c) 2012-2015 Ericsson AB
+        Copyright (c) 2012-2016 Ericsson AB
