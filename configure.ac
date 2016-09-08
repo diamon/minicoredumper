@@ -150,7 +150,6 @@ dnl last but not least
 AC_OUTPUT([Makefile
 	   src/Makefile
 	   src/api/Makefile
-	   src/compat/Makefile
 	   src/coreinject/Makefile
 	   src/libminicoredumper/Makefile
 	   src/libminicoredumper/minicoredumper-uninstalled.pc

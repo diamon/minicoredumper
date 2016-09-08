@@ -5,7 +5,7 @@
 ## You can do whatever you want with this file.
 ##
 
-SUBDIRS = api compat
+SUBDIRS = api
 
 if COND_COREINJECT
 SUBDIRS += coreinject
