@@ -12,7 +12,7 @@ dist_man_MANS = minicoredumper.cfg.json.5 minicoredumper.recept.json.5 \
 
 minicoredumper_SOURCES = corestripper.c corestripper.h \
 			 prog_config.c prog_config.h \
-			 ../common/common.c ../common/elf_dumplist.c
+			 ../common/invalid_ident.c ../common/elf_dumplist.c
 
 minicoredumper_LDADD = $(top_builddir)/lib/libjson.a \
 		       -lthread_db -lrt -lpthread \

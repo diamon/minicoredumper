@@ -15,7 +15,7 @@ EXTRA_DIST = minicoredumper.pc.in minicoredumper-uninstalled.pc.in
 lib_LTLIBRARIES = libminicoredumper.la
 
 libminicoredumper_la_SOURCES = mcd.c dump_data_private.h \
-			       ../common/common.c ../common/common.h
+			       ../common/invalid_ident.c ../common/common.h
 
 libminicoredumper_la_LDFLAGS = -lpthread
 libminicoredumper_la_CFLAGS = -g -Wall -std=c99 -D_GNU_SOURCE $(MCD_WERROR) \

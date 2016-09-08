@@ -24,52 +24,24 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __COMMON_H__
-#define __COMMON_H__
+#include <string.h>
 
-#include <stdio.h>
-#include <pthread.h>
-#include <inttypes.h>
+int invalid_ident(const char *ident)
+{
+	if (!ident)
+		return 0;
 
-#define MCD_SOCK_PATH "minicoredumper"
-#define MCD_SHM_PATH "/minicoredumper.shm"
+	if (strcmp(ident, "") == 0)
+		return 1;
 
-#define MCD_REGISTER	1
-#define MCD_UNREGISTER	2
-#define MCD_SHUTDOWN	3
+	if (strcmp(ident, ".") == 0)
+		return 1;
 
-struct mcd_regdata {
-	uint32_t req;
-	uint32_t data;
-};
+	if (strcmp(ident, "..") == 0)
+		return 1;
 
-struct mcd_shm_head {
-	uint32_t head_size;
-	uint32_t item_size;
-	uint32_t count;
-	pthread_mutex_t m;
-};
+	if (strchr(ident, '/'))
+		return 1;
 
-struct mcd_shm_item {
-	pid_t pid;
-	uint32_t data;
-};
-
-struct core_data {
-	off64_t start;
-	off64_t end;
-
-	off64_t mem_start;
-	int mem_fd;
-
-	int blk_id;
-
-	struct core_data *next;
-};
-
-extern int invalid_ident(const char *ident);
-
-extern int add_dump_list(int core_fd, size_t *core_size,
-			 struct core_data *dump_list, off64_t *dump_offset);
-
-#endif /* __COMMON_H__ */
+	return 0;
+}
