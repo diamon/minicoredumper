@@ -160,9 +160,9 @@ static ssize_t write_file_fd(int fd, char *src, int len)
 	return size;
 }
 
-static void check_config(struct dump_info *di)
+static void check_config(struct config *cfg)
 {
-	if (!di->cfg->base_dir)
+	if (!cfg->base_dir)
 		fatal("no base_dir set in config file");
 }
 
@@ -262,6 +262,9 @@ static char *alloc_comm(char *arg, pid_t pid)
 	if (arg[0] != 0)
 		return strdup(arg);
 
+	if (pid == 0)
+		return NULL;
+
 	if (asprintf(&tmp_path, "/proc/%i/comm", pid) == -1)
 		return NULL;
 
@@ -286,6 +289,38 @@ static char *alloc_comm(char *arg, pid_t pid)
 	fclose(f);
 
 	return p;
+}
+
+static char *alloc_exe(pid_t pid)
+{
+	char *tmp_path;
+	char *exe;
+	int ret;
+
+	if (pid == 0)
+		return NULL;
+
+	exe = malloc(PATH_MAX + 1);
+	if (!exe)
+		return NULL;
+
+	if (asprintf(&tmp_path, "/proc/%i/exe", pid) == -1) {
+		free(exe);
+		return NULL;
+	}
+
+	ret = readlink(tmp_path, exe, PATH_MAX + 1);
+	if (ret < 0 || ret > PATH_MAX) {
+		info("readlink on \'%s\' failed", tmp_path);
+		free(tmp_path);
+		free(exe);
+		return NULL;
+	}
+	free(tmp_path);
+	/* readlink does not terminate the string */
+	exe[ret] = 0;
+
+	return exe;
 }
 
 static char *alloc_dst_dir(time_t timestamp, const char *base_dir,
@@ -332,7 +367,6 @@ static int init_di(struct dump_info *di, int argc, char *argv[])
 	char *comm_base;
 	char *tmp_path;
 	char *p;
-	int ret;
 
 	if (elf_version(EV_CURRENT) == EV_NONE) {
 		info("elf_version EV_NONE");
@@ -372,22 +406,9 @@ static int init_di(struct dump_info *di, int argc, char *argv[])
 	if (!di->comm)
 		return 1;
 
-	di->exe = malloc(PATH_MAX + 1);
+	di->exe = alloc_exe(di->pid);
 	if (!di->exe)
 		return 1;
-
-	if (asprintf(&tmp_path, "/proc/%i/exe", di->pid) == -1)
-		return 1;
-
-	ret = readlink(tmp_path, di->exe, PATH_MAX + 1);
-	if (ret < 0 || ret > PATH_MAX) {
-		info("readlink on \'%s\' failed", tmp_path);
-		free(tmp_path);
-		return 1;
-	}
-	free(tmp_path);
-	/* readlink does not terminate the string */
-	di->exe[ret] = 0;
 
 	if (argc == 8) {
 		di->cfg = init_config("/etc/minicoredumper/"
@@ -402,7 +423,7 @@ static int init_di(struct dump_info *di, int argc, char *argv[])
 	if (!di->cfg)
 		fatal("unable to init config");
 
-	check_config(di);
+	check_config(di->cfg);
 
 	info("comm: %s", di->comm);
 	info("exe: %s", di->exe);
@@ -3302,10 +3323,14 @@ out:
 
 static int do_all_dumps(struct dump_info *di, int argc, char *argv[])
 {
+	struct config *cfg;
 	const char *recept;
 	bool live_dumper;
 	char *comm_base;
 	pid_t core_pid;
+	long timestamp;
+	char *comm;
+	char *exe;
 	char *p;
 	char *ext_argv[10] = {
 		argv[0],
@@ -3321,35 +3346,40 @@ static int do_all_dumps(struct dump_info *di, int argc, char *argv[])
 	};
 
 	if (argc == 8) {
-		di->cfg = init_config("/etc/minicoredumper/"
-				      "minicoredumper.cfg.json");
+		cfg = init_config("/etc/minicoredumper/"
+				  "minicoredumper.cfg.json");
 	} else if (argc == 9) {
 		info("using custom minicoredumper cfg: %s", argv[8]);
-		di->cfg = init_config(argv[8]);
+		cfg = init_config(argv[8]);
 	} else {
 		fatal("wrong arg count, check /proc/sys/kernel/core_pattern");
 	}
 
-	if (!di->cfg)
+	if (!cfg)
 		fatal("unable to init config");
 
-	check_config(di);
+	check_config(cfg);
 
 	core_pid = strtol(argv[1], &p, 10);
 	if (*p != 0)
 		return 1;
 
-	di->pid = core_pid;
-
-	di->timestamp = strtol(argv[5], &p, 10);
+	timestamp = strtol(argv[5], &p, 10);
 	if (*p != 0)
 		return 1;
 
-	di->comm = alloc_comm(argv[7], di->pid);
-	if (!di->comm)
+	comm = alloc_comm(argv[7], core_pid);
+	if (!comm)
 		return 1;
 
-	comm_base = di->comm;
+	if (core_pid == 0)
+		exe = strdup("");
+	else
+		exe = alloc_exe(core_pid);
+	if (!exe)
+		return 1;
+
+	comm_base = comm;
 	while (1) {
 		p = strchr(comm_base, '/');
 		if (!p)
@@ -3357,21 +3387,23 @@ static int do_all_dumps(struct dump_info *di, int argc, char *argv[])
 		comm_base = p + 1;
 	}
 
-	di->dst_dir = alloc_dst_dir(di->timestamp, di->cfg->base_dir,
-				    comm_base, di->pid);
+	di->dst_dir = alloc_dst_dir(timestamp, cfg->base_dir,
+				    comm_base, core_pid);
 	if (!di->dst_dir)
 		return 1;
 
-	recept = get_prog_recept(di->cfg, di->comm, di->exe);
+	recept = get_prog_recept(cfg, comm, exe);
 	if (!recept)
 		return 1;
 
-	if (init_prog_config(di->cfg, recept) != 0)
+	if (init_prog_config(cfg, recept) != 0)
 		return 1;
 
-	live_dumper = di->cfg->prog_config.live_dumper;
+	live_dumper = cfg->prog_config.live_dumper;
 
-	cleanup_di(di);
+	free_config(cfg);
+	free(comm);
+	free(exe);
 
 	if (live_dumper) {
 		char pidstr[16];
