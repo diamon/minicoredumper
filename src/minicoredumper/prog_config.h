@@ -41,6 +41,7 @@ struct interesting_buffer {
 	char *symname;
 	size_t data_len;
 	bool follow_ptr;
+	char *ident;
 
 	struct interesting_buffer *next;
 };

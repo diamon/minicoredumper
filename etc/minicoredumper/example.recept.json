@@ -19,7 +19,8 @@
         {
             "symname": "my_short",
             "follow_ptr": false,
-            "data_len": 2
+            "data_len": 2,
+            "ident": "my_short_data.bin"
         }
     ],
     "dump_auxv_so_list": true,

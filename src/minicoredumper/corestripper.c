@@ -309,6 +309,8 @@ static int dump_data_file_text(struct mcd_dump_data *dd, FILE *file,
 	print_fmt_token(file, cb, fmt_string, dd->es_n, dd->es, start,
 			len - start, es_index);
 
+	info("dump: text: %s", dd->ident);
+
 	return 0;
 }
 
@@ -2300,7 +2302,7 @@ static void do_cleanup_data(void *data_ptr)
 	free(data_ptr);
 }
 
-static void free_dump_data_content(struct mcd_dump_data *dd)
+static void free_dump_data_fields(struct mcd_dump_data *dd)
 {
 	if (dd->ident) {
 		free(dd->ident);
@@ -2345,7 +2347,7 @@ static int alloc_remote_data_content(struct dump_info *di, unsigned long addr,
 			/* clear fields so there is no free() attempt */
 			dd->fmt = NULL;
 			dd->es = NULL;
-			free_dump_data_content(dd);
+			free_dump_data_fields(dd);
 			return EINVAL;
 		}
 	}
@@ -2357,7 +2359,7 @@ static int alloc_remote_data_content(struct dump_info *di, unsigned long addr,
 			/* clear fields so there is no free() attempt */
 			dd->fmt = NULL;
 			dd->es = NULL;
-			free_dump_data_content(dd);
+			free_dump_data_fields(dd);
 			return EFAULT;
 		}
 	}
@@ -2372,7 +2374,7 @@ static int alloc_remote_data_content(struct dump_info *di, unsigned long addr,
 	if (!es) {
 		/* clear fields so there is no free() attempt */
 		dd->es = NULL;
-		free_dump_data_content(dd);
+		free_dump_data_fields(dd);
 		return ENOMEM;
 	}
 
@@ -2380,61 +2382,72 @@ static int alloc_remote_data_content(struct dump_info *di, unsigned long addr,
 			  (sizeof(*es) * dd->es_n));
 	dd->es = es;
 	if (ret != 0) {
-		free_dump_data_content(dd);
+		free_dump_data_fields(dd);
 		return EFAULT;
 	}
 
 	return 0;
 }
 
-static int dump_data_content_core(struct dump_info *di,
-				  struct mcd_dump_data *dd)
+static int dump_data_to_core(struct dump_info *di, struct dump_data_elem *es,
+			     const char *symname)
 {
-	struct dump_data_elem *es;
 	unsigned long addr_ind;
 	unsigned long addr;
-	unsigned int i;
 	size_t length;
 	int ret;
 
-	/* dump each element to core */
-	for (i = 0; i < dd->es_n; i++) {
-		es = &dd->es[i];
+	/* resolve data pointer */
+	if ((es->flags & MCD_DATA_PTR_INDIRECT)) {
+		addr_ind = (unsigned long)es->data_ptr;
+		ret = read_remote(di, (unsigned long)es->data_ptr,
+				  &addr, sizeof(es->data_ptr));
+		if (ret != 0)
+			return ret;
+	} else {
+		addr_ind = 0;
+		addr = (unsigned long)es->data_ptr;
+	}
 
-		/* resolve data pointer */
-		if ((es->flags & MCD_DATA_PTR_INDIRECT)) {
-			addr_ind = (unsigned long)es->data_ptr;
-			ret = read_remote(di, (unsigned long)es->data_ptr,
-					  &addr, sizeof(es->data_ptr));
-			if (ret != 0)
-				return ret;
-		} else {
-			addr_ind = 0;
-			addr = (unsigned long)es->data_ptr;
-		}
+	/* resolve length pointer */
+	if ((es->flags & MCD_LENGTH_INDIRECT)) {
+		ret = read_remote(di, (unsigned long)es->u.length_ptr,
+				  &length, sizeof(es->u.length_ptr));
+		if (ret != 0)
+			return ret;
+	} else {
+		length = es->u.length;
+	}
 
-		/* resolve length pointer */
-		if ((es->flags & MCD_LENGTH_INDIRECT)) {
-			ret = read_remote(di, (unsigned long)es->u.length_ptr,
-					  &length, sizeof(es->u.length_ptr));
-			if (ret != 0)
-				return ret;
-		} else {
-			length = es->u.length;
-		}
+	/* dump indirect data pointer to core */
+	if (addr_ind != 0) {
+		dump_vma(di, addr_ind, sizeof(es->data_ptr), 0,
+			 symname ? "data pointer (%s)" : "data pointer%s",
+			 symname ? symname : "");
+	}
 
-		/* dump indirect data pointer to core */
-		if (addr_ind != 0) {
-			dump_vma(di, addr_ind, sizeof(es->data_ptr), 0,
-				 "data pointer");
-		}
-
-		/* dump data to core */
-		if (!(es->flags & MCD_DATA_NODUMP))
-			dump_vma(di, addr, length, 0, "data");
+	/* dump data to core */
+	if (!(es->flags & MCD_DATA_NODUMP)) {
+		dump_vma(di, addr, length, 0,
+			 symname ? "data (%s)" : "data%s",
+			 symname ? symname : "");
 	}
 
 	return 0;
+}
+
+static int dump_data_content_core(struct dump_info *di,
+				  struct mcd_dump_data *dd,
+				  const char *symname)
+{
+	unsigned int i;
+	int ret = 0;
+
+	/* dump each element to core (continuing on error) */
+	for (i = 0; i < dd->es_n; i++)
+		ret |= dump_data_to_core(di, &dd->es[i], symname);
+
+	return ret;
 }
 
 static int add_symbol_map_entry(struct dump_info *di, off64_t core_pos,
@@ -2525,6 +2538,9 @@ static int dump_data_file_bin(struct dump_info *di, struct mcd_dump_data *dd,
 					     sizeof(unsigned long), 'I',
 					     dd->ident);
 		}
+
+		info("dump: data pointer: %zu bytes @ %s",
+		     sizeof(unsigned long), dd->ident);
 	}
 
 	/* dump data */
@@ -2538,6 +2554,8 @@ static int dump_data_file_bin(struct dump_info *di, struct mcd_dump_data *dd,
 		add_symbol_map_entry(di, core_pos, addr, length,
 				     type, dd->ident);
 	}
+
+	info("dump: data: %zu bytes @ %s", length, dd->ident);
 out:
 	free(buf);
 	return ret;
@@ -2569,7 +2587,10 @@ static int dump_data_content_file(struct dump_info *di,
 	/* open text file for output */
 	snprintf(tmp_path, len, "%s/dumps/%i/%s", di->dst_dir, di->pid,
 		 dd->ident);
-	file = fopen(tmp_path, "a");
+	if (dd->type == MCD_BIN)
+		file = fopen(tmp_path, "wx");
+	else
+		file = fopen(tmp_path, "a");
 	ret = errno;
 	if (!file)
 		goto out;
@@ -2597,13 +2618,30 @@ out:
 	return ret;
 }
 
+static int dump_data_content(struct dump_info *di, struct mcd_dump_data *dd,
+			     const char *symname)
+{
+	int ret;
+
+	if (dd->ident) {
+		/* dump to external file */
+		ret = dump_data_content_file(di, dd);
+	} else {
+		/* dump to core */
+		ret = dump_data_content_core(di, dd, symname);
+	}
+
+	return ret;
+}
+
 static int dyn_dump(struct dump_info *di)
 {
 	struct mcd_dump_data *iter;
-	unsigned long dd_addr;
 	struct mcd_dump_data *dd;
+	unsigned long dd_addr;
 	unsigned long addr;
 	int version;
+	int err = 0;
 	int ret;
 
 	/* get dump data version */
@@ -2660,20 +2698,15 @@ static int dyn_dump(struct dump_info *di)
 			goto out;
 		}
 
-		/* dump the registered data... */
-		if (dd->ident) {
-			/* ...to external file */
-			ret = dump_data_content_file(di, dd);
-		} else {
-			/* ...to core */
-			ret = dump_data_content_core(di, dd);
-		}
-		free_dump_data_content(dd);
-		if (ret != 0)
-			goto out;
+		/* dump the registered data */
+		err |= dump_data_content(di, dd, NULL);
+
+		free_dump_data_fields(dd);
 	}
 out:
 	free(dd);
+	if (err)
+		return err;
 	return ret;
 }
 
@@ -3248,21 +3281,18 @@ static int get_so_list(struct dump_info *di)
 	return 0;
 }
 
-static void dump_sym_buffer(struct dump_info *di, unsigned long ptr,
-			    size_t len, const char *symname)
-{
-	unsigned long addr;
-
-	dump_vma(di, ptr, sizeof(void *), 0, "data pointer (%s)", symname);
-	if (read_remote(di, ptr, &addr, sizeof(addr)) == 0)
-		dump_vma(di, addr, len, 0, "data (%s)", symname);
-}
-
 static void get_interesting_buffers(struct dump_info *di)
 {
 	struct interesting_buffer *buf = di->cfg->prog_config.buffers;
+	struct dump_data_elem es;
+	struct mcd_dump_data dd;
 	unsigned long addr;
 	int ret;
+
+	memset(&dd, 0, sizeof(es));
+	dd.es_n = 1;
+	dd.es = &es;
+	dd.type = MCD_BIN;
 
 	while (buf) {
 		ret = sym_address(di, buf->symname, &addr);
@@ -3275,12 +3305,20 @@ static void get_interesting_buffers(struct dump_info *di)
 			info("found symbol: %s @ 0x%lx", buf->symname, addr);
 		}
 
-		if (buf->follow_ptr) {
-			dump_sym_buffer(di, addr, buf->data_len, buf->symname);
-		} else {
-			dump_vma(di, addr, buf->data_len, 0, "data (%s)",
-				 buf->symname);
-		}
+		/* setup temporary dump data object */
+		memset(&es, 0, sizeof(es));
+		es.data_ptr = (void *)addr;
+		if (buf->follow_ptr)
+			es.flags = MCD_DATA_PTR_INDIRECT;
+		else
+			es.flags = MCD_DATA_PTR_DIRECT;
+		es.flags |= MCD_LENGTH_DIRECT;
+		es.u.length = buf->data_len;
+		if (buf->ident)
+			dd.ident = buf->ident;
+
+		/* dump the data */
+		dump_data_content(di, &dd, buf->symname);
 
 		buf = buf->next;
 	}

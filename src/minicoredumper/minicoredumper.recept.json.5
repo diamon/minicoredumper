@@ -160,6 +160,25 @@ to by that pointer should be dumped.
 (integer) The size of the global variable in bytes. If
 .I follow_ptr
 is true, this is the size of the data pointed to.
+.TP
+.B ident
+(string) An optional string to identify the binary dump later. This
+corresponds to the
+.I ident
+argument of the
+.BR mcd_dump_data_register_bin (3)
+function of
+.BR libminicoredumper (7).
+It must be unique! If specified, the data will be dumped to an external
+file named
+.I ident
+instead of the
+.BR core (5)
+file. This data can be inserted into the
+.BR core (5)
+file later using the
+.BR coreinject (1)
+tool.
 .
 .SH COMPRESSION
 The
@@ -234,7 +253,8 @@ Here is an example of a recept file:
         {
             "symname": "my_short",
             "follow_ptr": false,
-            "data_len": 2
+            "data_len": 2,
+            "ident": "my_short_data.bin"
         }
     ],
     "compression": {
@@ -257,6 +277,7 @@ Here is an example of a recept file:
 .BR minicoredumper (1),
 .BR libminicoredumper (7),
 .BR minicoredumper.cfg.json (5),
+.BR coreinject (1),
 .BR minicoredumper_regd (1)
 .PP
 The DiaMon Workgroup: <http://www.diamon.org>

@@ -211,6 +211,14 @@ static int read_buffer_item(json_value *v_root, struct prog_config *cfg)
 				goto out_err;
 			tmp->data_len = v->u.integer;
 
+		} else if (strcmp(n, "ident") == 0) {
+			if (v->type != json_string)
+				goto out_err;
+
+			tmp->ident = strdup(v->u.string.ptr);
+			if (!tmp->ident)
+				goto out_err;
+
 		} else {
 			info("WARNING: ignoring unknown config item: %s", n);
 		}
@@ -224,6 +232,8 @@ static int read_buffer_item(json_value *v_root, struct prog_config *cfg)
 out_err:
 	if (tmp->symname)
 		free(tmp->symname);
+	if (tmp->ident)
+		free(tmp->ident);
 	free(tmp);
 
 	return -1;
@@ -652,6 +662,8 @@ void free_config(struct config *cfg)
 		cfg->prog_config.buffers = buf->next;
 		if (buf->symname)
 			free(buf->symname);
+		if (buf->ident)
+			free(buf->ident);
 		free(buf);
 	}
 
