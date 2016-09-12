@@ -8,7 +8,7 @@
 ###############################################################################
 
 AC_PREREQ(2.69)
-AC_INIT(minicoredumper, 1.0.2, john.ogness@linutronix.de)
+AC_INIT(minicoredumper, 2.0.0, john.ogness@linutronix.de)
 AC_CONFIG_MACRO_DIR(m4)
 AM_INIT_AUTOMAKE([subdir-objects])
 
