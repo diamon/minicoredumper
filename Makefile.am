@@ -7,7 +7,8 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-EXTRA_DIST = etc/minicoredumper/minicoredumper.cfg.json \
+EXTRA_DIST = COPYING.BSD COPYING.LGPLv2.1 \
+	     etc/minicoredumper/minicoredumper.cfg.json \
 	     etc/minicoredumper/generic.recept.json \
 	     etc/minicoredumper/example.recept.json
 
