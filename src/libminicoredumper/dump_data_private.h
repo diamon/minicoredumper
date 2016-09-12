@@ -27,8 +27,6 @@
 #ifndef __DUMP_DATA_PRIVATE_H__
 #define __DUMP_DATA_PRIVATE_H__
 
-#include <stdbool.h>
-
 /*
  * DUMP_DATA_VERSION 1:
  *     MCD_TEXT:PA_STRING => (char **)
@@ -37,8 +35,6 @@
  *     MCD_TEXT:PA_STRING => (char *)
  */
 #define DUMP_DATA_VERSION 2
-
-#define DUMP_DATA_MONITOR_ENV "MINICOREDUMPER_MONITOR"
 
 enum dump_type {
 	MCD_BIN = 0,
