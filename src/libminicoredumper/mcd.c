@@ -327,8 +327,8 @@ int mcd_dump_data_register_text(const char *ident, unsigned long dump_scope,
 
 int mcd_dump_data_register_bin(const char *ident, unsigned long dump_scope,
 			       mcd_dump_data_t *save_ptr, void *data_ptr,
-			       enum mcd_dump_data_flags ptr_flags,
-			       size_t data_size)
+			       size_t data_size,
+			       enum mcd_dump_data_flags ptr_flags)
 {
 	struct dump_data_elem *es = NULL;
 	struct mcd_dump_data *dd = NULL;

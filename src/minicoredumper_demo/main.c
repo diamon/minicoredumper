@@ -86,11 +86,10 @@ int __attribute__((optimize("O0"))) main(int argc, char *argv[])
 
 	/* register binary dumps */
 	mcd_dump_data_register_bin(NULL, 6, &dd[7], &val2,
-				   MCD_DATA_PTR_DIRECT | MCD_LENGTH_INDIRECT,
-				   (size_t)&sizeof_val2);
-	mcd_dump_data_register_bin("val3.bin", 6, &dd[8], &val3,
-				   MCD_DATA_PTR_INDIRECT | MCD_LENGTH_DIRECT,
-				   sizeof(val3));
+				   (size_t)&sizeof_val2,
+				   MCD_DATA_PTR_DIRECT | MCD_LENGTH_INDIRECT);
+	mcd_dump_data_register_bin("val3.bin", 6, &dd[8], &val3, sizeof(val3),
+				   MCD_DATA_PTR_INDIRECT | MCD_LENGTH_DIRECT);
 
 	/* print values for reference */
 	printf("str1: val=%s ptr=%p ind_ptr=%p\n", str1, str1, &str1);

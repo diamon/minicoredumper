@@ -5,7 +5,7 @@
 .\" This file has been put into the public domain.
 .\" You can do whatever you want with this file.
 .\"
-.TH MCD_DUMP_DATA_REGISTER_BIN 3 "2016-07-19" "Ericsson" "minicoredumper"
+.TH MCD_DUMP_DATA_REGISTER_BIN 3 "2016-09-12" "Ericsson" "minicoredumper"
 .
 .SH NAME
 mcd_dump_data_register_bin \- register binary data to be dumped
@@ -18,8 +18,8 @@ mcd_dump_data_register_bin \- register binary data to be dumped
 .BI "                               unsigned long " dump_scope ,
 .BI "                               mcd_dump_data_t *" save_ptr ,
 .BI "                               void *" data_ptr ,
-.BI "                               enum mcd_dump_data_flags " ptr_flags ,
-.BI "                               size_t " data_size );
+.BI "                               size_t " data_size ,
+.BI "                               enum mcd_dump_data_flags " flags );
 .fi
 .PP
 Compile and link with
@@ -49,7 +49,7 @@ will be used.
 .I data_ptr
 contains a pointer to the memory location of the data to dump (or a pointer
 to that pointer).
-.I ptr_flags
+.I flags
 specifies how
 .I data_ptr
 and
@@ -60,7 +60,7 @@ specifies the number of bytes of data to dump (or a pointer to the number).
 .
 .SH "DATA FLAGS"
 The
-.I ptr_flags
+.I flags
 option specifies how
 .I data_ptr
 and
@@ -131,9 +131,8 @@ Register a binary dump with direct data and direct size.
 mcd_dump_data_t dd1;
 unsigned long val1;
 
-mcd_dump_data_register_bin("bdump1.bin", 6, &dd1, &val1,
-                           MCD_DATA_PTR_DIRECT | MCD_LENGTH_DIRECT,
-                           sizeof(val1));
+mcd_dump_data_register_bin("bdump1.bin", 6, &dd1, &val1, sizeof(val1),
+                           MCD_DATA_PTR_DIRECT | MCD_LENGTH_DIRECT);
 .fi
 .RE
 .PP
@@ -146,9 +145,8 @@ unsigned long *val2;
 
 val2 = malloc(sizeof(unsigned long));
 
-mcd_dump_data_register_bin("bdump2.bin", 6, &dd2, &val2,
-                           MCD_DATA_PTR_INDIRECT | MCD_LENGTH_DIRECT,
-                           sizeof(*val2));
+mcd_dump_data_register_bin("bdump2.bin", 6, &dd2, &val2, sizeof(*val2),
+                           MCD_DATA_PTR_INDIRECT | MCD_LENGTH_DIRECT);
 .fi
 .RE
 .PP
@@ -163,9 +161,8 @@ size_t s3;
 s3 = sizeof(unsigned long);
 val3 = malloc(s3);
 
-mcd_dump_data_register_bin("bdump3.bin", 6, &dd3, &val3,
-                           MCD_DATA_PTR_INDIRECT | MCD_LENGTH_INDIRECT,
-                           (size_t)&s3);
+mcd_dump_data_register_bin("bdump3.bin", 6, &dd3, &val3, (size_t)&s3,
+                           MCD_DATA_PTR_INDIRECT | MCD_LENGTH_INDIRECT);
 .fi
 .RE
 .
@@ -184,7 +181,7 @@ such as '/' are not permitted.
 .
 .SH "SEE ALSO"
 .BR libminicoredumper (7),
-.BR mcd_dump_data_unregister (3)
+.BR mcd_dump_data_unregister (3),
 .BR coreinject (1)
 .PP
 The DiaMon Workgroup: <http://www.diamon.org>
