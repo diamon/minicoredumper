@@ -170,6 +170,34 @@ static void check_config(struct config *cfg)
 		fatal("no base_dir set in config file");
 }
 
+static int alloc_nodirective_fmt(char **newstr, const char *fmt)
+{
+	size_t len;
+	char *str;
+	char *p;
+
+	str = strdup(fmt);
+	if (!str)
+		return -1;
+
+	/* convert any "%%" to "%" */
+
+	len = strlen(fmt);
+	p = str;
+	while (*p) {
+		if (*p == '%' && *(p + 1) == '%') {
+			memmove(p, p + 1, len);
+			len--;
+		}
+		p++;
+		len--;
+	}
+
+	*newstr = str;
+
+	return 0;
+}
+
 static int print_fmt_token(FILE *ft, struct remote_data_callbacks *cb,
 			   const char *fmt_string, int n,
 			   struct dump_data_elem *es_ptr, int fmt_offset,
@@ -247,7 +275,7 @@ static int print_fmt_token(FILE *ft, struct remote_data_callbacks *cb,
 		ASPRINTF_CASE(long double *);
 	default:
 		if (no_directives)
-			ret = asprintf(&d_str, token);
+			ret = alloc_nodirective_fmt(&d_str, token);
 		else
 			ret = asprintf(&d_str, "%s", token);
 		break;
@@ -255,8 +283,10 @@ static int print_fmt_token(FILE *ft, struct remote_data_callbacks *cb,
 
 	free(token);
 
-	if (ret < 0)
+	if (ret < 0) {
+		d_str = NULL;
 		goto out_err;
+	}
 out:
 	if (d_str)
 		fwrite(d_str, 1, strlen(d_str), ft);
@@ -442,6 +472,7 @@ out:
 static char *alloc_comm(char *arg, pid_t pid)
 {
 	char *tmp_path;
+	size_t ret;
 	FILE *f;
 	char *p;
 
@@ -468,8 +499,8 @@ static char *alloc_comm(char *arg, pid_t pid)
 		return NULL;
 	}
 
-	fread(p, PATH_MAX, 1, f);
-	if (ferror(f) || p[0] == 0) {
+	ret = fread(p, PATH_MAX, 1, f);
+	if ((ret == 0 && ferror(f)) || p[0] == 0) {
 		free(p);
 		fclose(f);
 		return NULL;
