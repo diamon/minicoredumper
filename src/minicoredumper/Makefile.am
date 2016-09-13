@@ -11,16 +11,16 @@ dist_man_MANS = minicoredumper.cfg.json.5 minicoredumper.recept.json.5 \
 		minicoredumper.1
 
 minicoredumper_SOURCES = corestripper.c corestripper.h \
-			 prog_config.c prog_config.h \
-			 ../common/invalid_ident.c ../common/elf_dumplist.c
-
-minicoredumper_LDADD = $(top_builddir)/lib/libjson.a \
-		       -lthread_db -lrt -lpthread \
+			 prog_config.c prog_config.h
+minicoredumper_CPPFLAGS = $(MCD_CPPFLAGS) \
+			  -I$(top_srcdir)/lib \
+			  -I$(top_srcdir)/src/api \
+			  -I$(top_srcdir)/src/common \
+			  -I$(top_srcdir)/src/libminicoredumper \
+			  $(libelf_CFLAGS)
+minicoredumper_CFLAGS = $(MCD_CFLAGS)
+minicoredumper_LDADD = ../../lib/libjson.a \
+		       ../common/libmcdelf.a \
+		       ../common/libmcdident.a \
+		       -lthread_db -lpthread -lrt \
 		       $(libelf_LIBS)
-minicoredumper_CFLAGS = -g -Wall -std=c99 -D_GNU_SOURCE $(MCD_WERROR) \
-			-D_LARGEFILE64_SOURCE \
-			-I$(top_srcdir)/lib \
-			-I$(top_srcdir)/src/api \
-			-I$(top_srcdir)/src/common \
-			-I$(top_srcdir)/src/libminicoredumper \
-			$(libelf_CFLAGS)

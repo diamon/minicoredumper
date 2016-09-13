@@ -5,7 +5,7 @@
 ## You can do whatever you want with this file.
 ##
 
-SUBDIRS = api
+SUBDIRS = api common
 
 if COND_COREINJECT
 SUBDIRS += coreinject

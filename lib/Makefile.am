@@ -8,5 +8,5 @@
 noinst_LIBRARIES = libjson.a
 
 libjson_a_SOURCES = json.c json.h
-
-libjson_a_CFLAGS = -D_GNU_SOURCE -Wall -Wextra -g -DNO_LIBM
+libjson_a_CPPFLAGS = $(MCD_CPPFLAGS) -DNO_LIBM
+libjson_a_CFLAGS = $(MCD_CFLAGS)

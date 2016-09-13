@@ -10,7 +10,8 @@
 AC_PREREQ(2.69)
 AC_INIT(minicoredumper, 2.0.0, john.ogness@linutronix.de)
 AC_CONFIG_MACRO_DIR(m4)
-AM_INIT_AUTOMAKE([subdir-objects])
+AM_INIT_AUTOMAKE
+AM_MAINTAINER_MODE
 
 AM_CONFIG_HEADER(config.h)
 
@@ -155,14 +156,22 @@ AM_CONDITIONAL([COND_MINICOREDUMPER_DEMO], [test "$WANT_MINICOREDUMPER_DEMO" -eq
 dnl with or without -Werror
 AC_ARG_WITH([werror],
 	    [AS_HELP_STRING([--without-werror],
-	    [compile with -Werror @<:@default=with@:>@])],
-	    [MCD_WERROR=""],
-	    [MCD_WERROR="-Werror"])
+	    [compile with -Werror @<:@default=with@:>@])])
+AS_CASE(["$with_werror"],
+	[yes], [MCD_WERROR="-Werror"],
+	[no], [MCD_WERROR=""],
+	[MCD_WERROR="-Werror"])
+
+MCD_CPPFLAGS="-Wall -D_GNU_SOURCE -D_LARGEFILE64_SOURCE $MCD_WERROR"
+MCD_CFLAGS="-std=c99"
+AC_SUBST([MCD_CPPFLAGS])
+AC_SUBST([MCD_CFLAGS])
 
 dnl last but not least
 AC_OUTPUT([Makefile
 	   src/Makefile
 	   src/api/Makefile
+	   src/common/Makefile
 	   src/coreinject/Makefile
 	   src/libminicoredumper/Makefile
 	   src/libminicoredumper/minicoredumper-uninstalled.pc
