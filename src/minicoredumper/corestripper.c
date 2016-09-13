@@ -469,6 +469,15 @@ out:
 	return err;
 }
 
+static void clear_newline(char *str)
+{
+	char *p;
+
+	p = strchr(str, '\n');
+	if (p)
+		*p = 0;
+}
+
 static char *alloc_comm(char *arg, pid_t pid)
 {
 	char *tmp_path;
@@ -507,6 +516,9 @@ static char *alloc_comm(char *arg, pid_t pid)
 	}
 
 	fclose(f);
+
+	/* remove newline */
+	clear_newline(p);
 
 	return p;
 }
@@ -2230,10 +2242,8 @@ static int dump_maps(struct dump_info *di, int get_only)
 		/* capture library name */
 		lib = p;
 
-		/* strip newline */
-		p = strchr(lib, '\n');
-		if (p)
-			*p = 0;
+		/* remove newline */
+		clear_newline(lib);
 
 		if (!map_is_interesting(di, lib, end - start))
 			continue;
