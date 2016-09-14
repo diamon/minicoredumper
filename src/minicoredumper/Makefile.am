@@ -5,7 +5,7 @@
 ## You can do whatever you want with this file.
 ##
 
-bin_PROGRAMS = minicoredumper
+sbin_PROGRAMS = minicoredumper
 
 dist_man_MANS = minicoredumper.cfg.json.5 minicoredumper.recept.json.5 \
 		minicoredumper.1

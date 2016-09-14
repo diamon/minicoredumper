@@ -5,7 +5,7 @@
 ## You can do whatever you want with this file.
 ##
 
-bin_PROGRAMS = minicoredumper_regd
+sbin_PROGRAMS = minicoredumper_regd
 
 dist_man_MANS = minicoredumper_regd.1
 

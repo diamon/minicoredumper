@@ -5,6 +5,6 @@
 ## You can do whatever you want with this file.
 ##
 
-dist_bin_SCRIPTS = minicoredumper_trigger
+dist_sbin_SCRIPTS = minicoredumper_trigger
 
 dist_man_MANS = minicoredumper_trigger.1
