@@ -20,6 +20,7 @@ libminicoredumper_la_CPPFLAGS = $(MCD_CPPFLAGS) \
 				-I$(top_srcdir)/src/common \
 				-DG_LOG_DOMAIN=\"minicoredumper\"
 libminicoredumper_la_CFLAGS = $(MCD_CFLAGS)
+libminicoredumper_la_LDFLAGS = -Wl,--exclude-libs,ALL
 libminicoredumper_la_LIBADD = ../common/libmcdident.la
 
 include_HEADERS = $(top_srcdir)/src/api/minicoredumper.h
@@ -32,4 +33,4 @@ include_HEADERS = $(top_srcdir)/src/api/minicoredumper.h
 #    then increment age.
 # 4) If any interfaces have been removed or changed since the last public
 #    release, then set age to 0.
-libminicoredumper_la_LDFLAGS = -version-info 2:0:0
+libminicoredumper_la_LDFLAGS += -version-info 2:0:0
