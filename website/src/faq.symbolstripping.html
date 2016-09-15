@@ -2,12 +2,6 @@ Will minicoredumper work with stripped libraries and executables?
 <p>There are some symbols that minicoredumper will need to find. These should not be stripped from their libraries and executables.
 <ol>
 <li>Any symbols specified as <samp>buffers</samp> in the recept file must not be stripped.</li>
-<li>The following symbols within the libminicoredumper library must not be stripped:
-<ul>
-<li><samp>mcd_dump_data_version</samp></li>
-<li><samp>mcd_dump_data_head</samp></li>
-</ul>
-</li>
 <li>Although normally not needed, minicoredumper will fallback to manually check for some symbols in libpthread if the crashing application is using a libpthread that is incompatible with the libthread_db minicoredumper is using. Those libpthread symbols are:
 <ul>
 <li><samp>_thread_db_sizeof_pthread</samp></li>

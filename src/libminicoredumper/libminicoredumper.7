@@ -37,16 +37,6 @@ the
 uses PTRACE_SEIZE and PTRACE_INTERRUPT to temporarily pause registered
 applications until all dumping is complete.
 .
-.SH NOTES
-In order for the
-.BR minicoredumper (1)
-to identify the registered data, the symbols
-.I mcd_dump_data_head
-and
-.I mcd_dump_data_version
-must not be stripped from
-.BR libminicoredumper .
-.
 .SH "SEE ALSO"
 .BR mcd_dump_data_register_bin (3),
 .BR mcd_dump_data_register_text (3),

@@ -1740,7 +1740,8 @@ static int sym_address(struct dump_info *di, const char *symname,
 	return -1;
 }
 
-static struct sym_data *alloc_sym_data(const char *file, unsigned long start)
+static struct sym_data *alloc_sym_data(const char *file, unsigned long start,
+				       GElf_Word type)
 {
 	struct sym_data *sd;
 	Elf_Scn *scn = NULL;
@@ -1769,8 +1770,8 @@ static struct sym_data *alloc_sym_data(const char *file, unsigned long start)
 		}
 
 		shdr = gelf_getshdr(scn, &sd->shdr);
-		if (shdr && sd->shdr.sh_type == SHT_SYMTAB) {
-			/* found symbol table */
+		if (shdr && sd->shdr.sh_type == type) {
+			/* found section */
 			break;
 		}
 	}
@@ -1786,6 +1787,9 @@ static int store_sym_data(struct dump_info *di, const char *lib,
 {
 	struct sym_data *cur;
 	struct sym_data *sd;
+	GElf_Word type;
+	int err = -1;
+	int i;
 
 	/* check if we already have this data */
 	for (cur = di->sym_data_list; cur; cur = cur->next) {
@@ -1794,20 +1798,32 @@ static int store_sym_data(struct dump_info *di, const char *lib,
 	}
 
 	/* allocate new sym_data node */
-	sd = alloc_sym_data(lib, start);
-	if (!sd)
-		return -1;
+	for (i = 0; i < 2; i++) {
+		if (i == 0)
+			type = SHT_SYMTAB;
+		else
+			type = SHT_DYNSYM;
 
-	/* add new node to end of list */
-	if (!di->sym_data_list) {
-		di->sym_data_list = sd;
-	} else {
-		for (cur = di->sym_data_list; cur->next; cur = cur->next)
-			/* NOP */ ;
-		cur->next = sd;
+		sd = alloc_sym_data(lib, start, type);
+		if (!sd)
+			continue;
+
+		if (!di->sym_data_list) {
+			di->sym_data_list = sd;
+		} else {
+			/* add new node to end of list */
+			for (cur = di->sym_data_list; cur->next;
+			     cur = cur->next) {
+				/* NOP */ ;
+			}
+			cur->next = sd;
+		}
+
+		/* report success if data was added */
+		err = 0;
 	}
 
-	return 0;
+	return err;
 }
 
 static void close_sym(struct dump_info *di)
