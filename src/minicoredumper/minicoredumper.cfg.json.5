@@ -5,7 +5,7 @@
 .\" This file has been put into the public domain.
 .\" You can do whatever you want with this file.
 .\"
-.TH MINICOREDUMPER.CFG.JSON 5 "2016-07-19" "Ericsson" "minicoredumper"
+.TH MINICOREDUMPER.CFG.JSON 5 "2016-09-16" "Ericsson" "minicoredumper"
 .
 .SH NAME
 minicoredumper.cfg.json \- the main configuration file for
@@ -44,7 +44,7 @@ for configuration options for a condition.
 A condition can contain any combination of these options:
 .TP
 .B exe
-(string) The full path to the binary being executed as retured by
+(string) The full path to the binary being executed as returned by
 .BR readlink (2).
 .TP
 .B comm
@@ -61,7 +61,7 @@ Both
 .I exe
 and
 .I comm
-can contain the * charater for wildcard matching.
+can contain the * character for wildcard matching.
 .PP
 The conditions are checked to find a match in the order specified. The
 first match will cause the minicoredumper to use the recept for that

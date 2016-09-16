@@ -129,7 +129,7 @@ static int write_core(FILE *f_core, FILE *f_dump, struct ident_data *d,
 		fprintf(stderr, "error: failed to read %ld bytes from dump\n",
 			d->size);
 		if (direct) {
-			fprintf(stderr, "  specifiy the data source for %s with:\n",
+			fprintf(stderr, "  specify the data source for %s with:\n",
 				d->ident);
 			fprintf(stderr, "  --data=%s:%ld@<filename>+<offset>\n",
 				d->ident, d->size);
