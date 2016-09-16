@@ -1,0 +1,30 @@
+#!/usr/bin/make -f
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+DH_VERBOSE = 1
+DH_OPTIONS = -v
+
+# see EXAMPLES in dpkg-buildflags(1) and read /usr/share/dpkg/*
+DPKG_EXPORT_BUILDFLAGS = 1
+include /usr/share/dpkg/default.mk
+
+# see FEATURE AREAS in dpkg-buildflags(1)
+#export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+# see ENVIRONMENT in dpkg-buildflags(1)
+# package maintainers to append CFLAGS
+#export DEB_CFLAGS_MAINT_APPEND  = -Wall -pedantic
+# package maintainers to append LDFLAGS
+#export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
+
+override_dh_auto_install:
+	dh_auto_install --destdir debian/tmp
+	install -m 0644 -D -t debian/tmp/conf debian/conf/*
+	install -m 0700 -d debian/tmp/var/crash/minicoredumper
+
+override_dh_fixperms:
+	dh_fixperms --exclude var/crash
+
+# main packaging script based on dh7 syntax
+%:
+	dh $@  --with autotools-dev

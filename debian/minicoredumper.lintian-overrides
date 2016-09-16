@@ -1,0 +1,5 @@
+# Policy says in §10.9: "Directories should be mode 755 or (for
+# group-writability) mode 2775." This is not preferred for sensible information
+# like which programs are crashing and when. Therefore we consider Lintian
+# being wrong here and an override to be appropriate.
+non-standard-dir-perm var/crash/minicoredumper/ 0700 != 0755
