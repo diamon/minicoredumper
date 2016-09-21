@@ -1,0 +1,8 @@
+{
+    "base_dir": "@MCD_DUMP_PATH@",
+    "watch": [
+        {
+            "recept": "generic.recept.json"
+        }
+    ]
+}

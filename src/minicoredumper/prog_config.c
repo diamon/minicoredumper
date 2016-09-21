@@ -31,7 +31,6 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include <assert.h>
 #include <string.h>
 #include <stdbool.h>
 
@@ -474,7 +473,16 @@ static int read_watch_elem(json_value *v_root, struct config *cfg)
 		} else if (strcmp(n, "recept") == 0) {
 			if (v->type != json_string)
 				goto out_err;
-			tmp->recept = strdup(v->u.string.ptr);
+			if (v->u.string.ptr[0] == '/') {
+				/* absolute path */
+				tmp->recept = strdup(v->u.string.ptr);
+			} else {
+				/* path relative to MCD_CONF_PATH */
+				if (asprintf(&tmp->recept,MCD_CONF_PATH "/%s",
+					     v->u.string.ptr) < 1) {
+					tmp->recept = NULL;
+				}
+			}
 
 		} else {
 			info("WARNING: ignoring unknown config item: %s", n);

@@ -7,93 +7,60 @@
 #
 ###############################################################################
 
-AC_PREREQ(2.69)
-AC_INIT(minicoredumper, 2.0.0, john.ogness@linutronix.de)
-AC_CONFIG_MACRO_DIR(m4)
+AC_PREREQ([2.69])
+AC_INIT([minicoredumper], [2.0.0], [john.ogness@linutronix.de], [minicoredumper], [https://www.linutronix.de/minicoredumper])
+AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
 
-AM_CONFIG_HEADER(config.h)
+AM_CONFIG_HEADER([config.h])
 
-AC_SUBST(VERSION)
+AC_SUBST([VERSION])
 
 ISODATE=`date +%Y-%m-%d`
-AC_SUBST(ISODATE)
+AC_SUBST([ISODATE])
 
 AC_CANONICAL_HOST
 AC_CANONICAL_BUILD
 AC_LANG([C])
 
-dnl Checks for programs.
 AC_PROG_CC
 AM_PROG_CC_C_O
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
-AC_C_INLINE
 AC_PROG_AWK
+AC_PROG_SED
+AC_PROG_MKDIR_P
 AC_PROG_CXX
 
 LT_INIT
 
-AC_DEFINE(_GNU_SOURCE, , GNU SOURCE)
+AC_DEFINE([_GNU_SOURCE], [], [GNU SOURCE])
 
-dnl Checks for libraries.
-
-dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([argp.h],,[AC_MSG_ERROR([argp.h missing!])])
-AC_CHECK_HEADERS([elf.h],,[AC_MSG_ERROR([elf.h missing!])])
-AC_CHECK_HEADERS([fcntl.h],,[AC_MSG_ERROR([fcntl.h missing!])])
-AC_CHECK_HEADERS([inttypes.h],,[AC_MSG_ERROR([inttypes.h missing!])])
-AC_CHECK_HEADERS([limits.h],,[AC_MSG_ERROR([limits.h missing!])])
-AC_CHECK_HEADERS([stddef.h],,[AC_MSG_ERROR([stddef.h missing!])])
-AC_CHECK_HEADERS([stdlib.h],,[AC_MSG_ERROR([stdlib.h missing!])])
-AC_CHECK_HEADERS([string.h],,[AC_MSG_ERROR([string.h missing!])])
-AC_CHECK_HEADERS([syslog.h],,[AC_MSG_ERROR([syslog.h missing!])])
-AC_CHECK_HEADERS([unistd.h],,[AC_MSG_ERROR([unistd.h missing!])])
-AC_CHECK_HEADERS([sys/socket.h],,[AC_MSG_ERROR([sys/socket.h missing!])])
-AC_CHECK_HEADER_STDBOOL
+AC_CHECK_HEADERS([fcntl.h inttypes.h limits.h stddef.h stdlib.h string.h sys/socket.h syslog.h unistd.h],
+		 [], [AC_MSG_ERROR([required header missing!])])
 
-dnl Checks for typedefs, structures, and compiler characteristics.
+AC_CHECK_HEADER_STDBOOL
 AC_C_INLINE
-AC_C_CONST
 AC_TYPE_UID_T
-AC_TYPE_MODE_T
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
-AC_TYPE_OFF_T
 AC_TYPE_SSIZE_T
 AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 
-dnl Checks for library functions.
 AC_PROG_GCC_TRADITIONAL
-AC_CHECK_FUNCS([dup2])
-AC_CHECK_FUNCS([ftruncate])
-AC_CHECK_FUNCS([localtime_r])
-AC_CHECK_FUNCS([memset])
-AC_CHECK_FUNCS([mkdir])
-AC_CHECK_FUNCS([munmap])
-AC_CHECK_FUNCS([pow])
-AC_CHECK_FUNCS([socket])
-AC_CHECK_FUNCS([strchr])
-AC_CHECK_FUNCS([strdup])
-AC_CHECK_FUNCS([strerror])
-AC_CHECK_FUNCS([strndup])
-AC_CHECK_FUNCS([strrchr])
-AC_CHECK_FUNCS([strtol])
 AC_FUNC_FORK
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_MALLOC
 AC_FUNC_MMAP
-AC_FUNC_STRTOD
+AC_CHECK_FUNCS([dup2 ftruncate localtime_r memmove memset mkdir munmap pow socket strchr strdup strerror strndup strrchr strtol])
 
-dnl Checks for tools.
-AC_CHECK_PROG(PKGCONFIG_CHECK,pkg-config,yes)
-if test x$PKGCONFIG_CHECK != xyes ; then
-	AC_MSG_ERROR([pkg-config missing!])
-fi
+AC_CHECK_PROG([PKGCONFIG_CHECK], [pkg-config], [yes])
+AS_IF([test "x$PKGCONFIG_CHECK" = xyes],
+      [], AC_MSG_ERROR([pkg-config missing!]))
 
 PKG_CHECK_MODULES([libelf], [libelf], [],
 		  AC_CHECK_HEADERS([gelf.h], [libelf_LIBS=-lelf],
@@ -124,7 +91,8 @@ AS_CASE(["$with_minicoredumper_regd"],
 	[yes], [WANT_MINICOREDUMPER_REGD=1],
 	[no], [WANT_MINICOREDUMPER_REGD=0],
 	[WANT_MINICOREDUMPER_REGD=1])
-AM_CONDITIONAL([COND_MINICOREDUMPER_REGD], [test "$WANT_MINICOREDUMPER_REGD" -eq 1])
+AM_CONDITIONAL([COND_MINICOREDUMPER_REGD],
+	       [test "$WANT_MINICOREDUMPER_REGD" -eq 1])
 
 AC_ARG_WITH([minicoredumper_trigger],
 	    [AS_HELP_STRING([--without-minicoredumper_trigger],
@@ -133,7 +101,8 @@ AS_CASE(["$with_minicoredumper_trigger"],
 	[yes], [WANT_MINICOREDUMPER_TRIGGER=1],
 	[no], [WANT_MINICOREDUMPER_TRIGGER=0],
 	[WANT_MINICOREDUMPER_TRIGGER=1])
-AM_CONDITIONAL([COND_MINICOREDUMPER_TRIGGER], [test "$WANT_MINICOREDUMPER_TRIGGER" -eq 1])
+AM_CONDITIONAL([COND_MINICOREDUMPER_TRIGGER],
+	       [test "$WANT_MINICOREDUMPER_TRIGGER" -eq 1])
 
 AC_ARG_WITH([libminicoredumper],
 	    [AS_HELP_STRING([--without-libminicoredumper],
@@ -142,7 +111,8 @@ AS_CASE(["$with_libminicoredumper"],
 	[yes], [WANT_LIBMINICOREDUMPER=1],
 	[no], [WANT_LIBMINICOREDUMPER=0],
 	[WANT_LIBMINICOREDUMPER=1])
-AM_CONDITIONAL([COND_LIBMINICOREDUMPER], [test "$WANT_LIBMINICOREDUMPER" -eq 1])
+AM_CONDITIONAL([COND_LIBMINICOREDUMPER],
+	       [test "$WANT_LIBMINICOREDUMPER" -eq 1])
 
 AC_ARG_WITH([minicoredumper_demo],
 	    [AS_HELP_STRING([--with-minicoredumper_demo],
@@ -151,9 +121,9 @@ AS_CASE(["$with_minicoredumper_demo"],
 	[yes], [WANT_MINICOREDUMPER_DEMO=1],
 	[no], [WANT_MINICOREDUMPER_DEMO=0],
 	[WANT_MINICOREDUMPER_DEMO=0])
-AM_CONDITIONAL([COND_MINICOREDUMPER_DEMO], [test "$WANT_MINICOREDUMPER_DEMO" -eq 1])
+AM_CONDITIONAL([COND_MINICOREDUMPER_DEMO],
+	       [test "$WANT_MINICOREDUMPER_DEMO" -eq 1])
 
-dnl with or without -Werror
 AC_ARG_WITH([werror],
 	    [AS_HELP_STRING([--without-werror],
 	    [compile with -Werror @<:@default=with@:>@])])
@@ -162,12 +132,35 @@ AS_CASE(["$with_werror"],
 	[no], [MCD_WERROR=""],
 	[MCD_WERROR="-Werror"])
 
+AC_ARG_VAR([MCD_CONF_PATH],
+	   [path to minicoredumper configuration directory [SYSCONFDIR/minicoredumper]])
+AS_IF([test "x$MCD_CONF_PATH" = x],
+      [MCD_CONF_PATH="${sysconfdir}/minicoredumper"], [])
+
+AC_ARG_VAR([MCD_DUMP_PATH],
+	   [path to minicoredumper dump directory [LOCALSTATEDIR/crash/minicoredumper]])
+AS_IF([test "x$MCD_DUMP_PATH" = x],
+      [MCD_DUMP_PATH="${localstatedir}/crash/minicoredumper"], [])
+
+AC_ARG_VAR([MCD_REGD_USER_GROUP],
+	   [minicoredumper_regd user:group [root:root]])
+AS_IF([test "x$MCD_REGD_USER_GROUP" = x],
+      [MCD_REGD_USER_GROUP="root:root"], [])
+
 MCD_CPPFLAGS="-Wall -D_GNU_SOURCE -D_LARGEFILE64_SOURCE $MCD_WERROR"
-MCD_CFLAGS="-std=c99"
 AC_SUBST([MCD_CPPFLAGS])
+
+MCD_CFLAGS="-std=c99"
 AC_SUBST([MCD_CFLAGS])
 
-dnl last but not least
+init_ddir="${sysconfdir}/init.d"
+initdefaultsdir="${sysconfdir}/default"
+AS_IF([test "x$runstatedir" = x], [runstatedir="${localstatedir}/run"], [])
+
+AC_SUBST([init_ddir])
+AC_SUBST([initdefaultsdir])
+AC_SUBST([runstatedir])
+
 AC_OUTPUT([Makefile
 	   src/Makefile
 	   src/api/Makefile

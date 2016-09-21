@@ -9,12 +9,17 @@
             "[vdso]"
         ]
     },
+    "compression": {
+        "compressor": "gzip",
+        "extension": "gz",
+        "in_tar": true
+    },
     "dump_auxv_so_list": true,
     "dump_pthread_list": true,
     "dump_robust_mutex_list": true,
-    "dump_scope": 8,
-    "live_dumper": false,
-    "write_proc_info": true,
+    "dump_scope": 1024,
+    "live_dumper": true,
+    "write_proc_info": false,
     "write_debug_log": false,
     "dump_fat_core": false
 }

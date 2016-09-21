@@ -17,6 +17,7 @@ minicoredumper_CPPFLAGS = $(MCD_CPPFLAGS) \
 			  -I$(top_srcdir)/src/api \
 			  -I$(top_srcdir)/src/common \
 			  -I$(top_srcdir)/src/libminicoredumper \
+			  -DMCD_CONF_PATH=\"$(MCD_CONF_PATH)\" \
 			  $(libelf_CFLAGS)
 minicoredumper_CFLAGS = $(MCD_CFLAGS)
 minicoredumper_LDADD = ../../lib/libjson.a \

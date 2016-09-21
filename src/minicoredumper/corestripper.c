@@ -643,8 +643,8 @@ static int init_di(struct dump_info *di, int argc, char *argv[])
 		return 1;
 
 	if (argc == 8) {
-		di->cfg = init_config("/etc/minicoredumper/"
-				      "minicoredumper.cfg.json");
+		di->cfg = init_config(MCD_CONF_PATH
+				      "/minicoredumper.cfg.json");
 	} else if (argc == 9) {
 		info("using custom minicoredumper cfg: %s", argv[8]);
 		di->cfg = init_config(argv[8]);
@@ -3628,8 +3628,7 @@ static int do_all_dumps(struct dump_info *di, int argc, char *argv[])
 	};
 
 	if (argc == 8) {
-		cfg = init_config("/etc/minicoredumper/"
-				  "minicoredumper.cfg.json");
+		cfg = init_config(MCD_CONF_PATH "/minicoredumper.cfg.json");
 	} else if (argc == 9) {
 		info("using custom minicoredumper cfg: %s", argv[8]);
 		cfg = init_config(argv[8]);

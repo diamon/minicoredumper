@@ -7,4 +7,5 @@ install-data-hook:
 	$(LN_S) mcd_dump_data_register_text.3 mcd_vdump_data_register_text.3
 
 uninstall-hook:
+	cd $(DESTDIR)$(mandir)/man3 && \
 	rm -f mcd_vdump_data_register_text.3
