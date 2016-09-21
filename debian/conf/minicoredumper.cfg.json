@@ -1,8 +1,0 @@
-{
-    "base_dir": "/var/crash/minicoredumper",
-    "watch": [
-        {
-            "recept": "/etc/minicoredumper/generic.recept.json"
-        }
-    ]
-}

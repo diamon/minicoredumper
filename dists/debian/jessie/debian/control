@@ -5,7 +5,7 @@ Maintainer: John Ogness <john.ogness@linutronix.dd>
 Build-Depends: debhelper (>= 9), autotools-dev, libelf-dev, pkg-config
 Standards-Version: 3.9.6
 Homepage: https://www.linutronix.de/minicoredumper
-Vcs-Git: http://git.linuxfoundation.org/diamon/minicoredumper.git
+Vcs-Git: git://git.linuxfoundation.org/diamon/minicoredumper.git
 Vcs-Browser: http://git.linuxfoundation.org/?p=diamon/minicoredumper.git;a=summary
 
 Package: minicoredumper

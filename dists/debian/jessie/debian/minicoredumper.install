@@ -1,0 +1,7 @@
+usr/sbin/minicoredumper
+usr/sbin/minicoredumper_regd
+etc/minicoredumper/generic.recept.json
+etc/minicoredumper/minicoredumper.cfg.json
+etc/default/minicoredumper
+etc/init.d/minicoredumper
+var/crash

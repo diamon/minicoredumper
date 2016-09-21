@@ -17,10 +17,13 @@ include /usr/share/dpkg/default.mk
 # package maintainers to append LDFLAGS
 #export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
+export MCD_REGD_USER_GROUP = mcd:mcd
+
 override_dh_auto_install:
 	dh_auto_install --destdir debian/tmp
-	install -m 0644 -D -t debian/tmp/conf debian/conf/*
-	install -m 0700 -d debian/tmp/var/crash/minicoredumper
+
+override_dh_installinit:
+	dh_installinit --onlyscripts
 
 override_dh_fixperms:
 	dh_fixperms --exclude var/crash
