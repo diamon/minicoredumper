@@ -22,9 +22,6 @@ export MCD_REGD_USER_GROUP = mcd:mcd
 override_dh_auto_install:
 	dh_auto_install --destdir debian/tmp
 
-override_dh_installinit:
-	dh_installinit --onlyscripts
-
 override_dh_fixperms:
 	dh_fixperms --exclude var/crash
 

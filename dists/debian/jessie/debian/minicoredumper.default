@@ -1,0 +1,16 @@
+# Defaults for minicoredumper initscript
+# sourced by /etc/init.d/minicoredumper
+
+#
+# This is a POSIX shell fragment
+#
+
+# Setup the Linux kernel to use the minicoredumper for core dumps.
+# (A value of 1 means setup. Anything else means do not setup.)
+MINICOREDUMPER_ACTIVATE=1
+
+# Start the minicoredumper regd daemon on boot. This is only necessary
+# if there will be libminicoredumper-based applications running and
+# these applications register custom dumps.
+# (A value of 1 means enabled. Anything else means disabled on boot.)
+MINICOREDUMPER_REGD_START=0
