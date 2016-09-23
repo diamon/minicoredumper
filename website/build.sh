@@ -117,7 +117,7 @@ for manpage in `find ../src -type f | grep '\.[0-9]$'`; do
 	for item in $missing_list; do
 		cmd=`echo $item | sed -e 's/\.[0-9]//'`
 		sect=`echo $item | rev | cut -c 1`
-		sed -e "s/\.\.\/man${sect}\/${cmd}\.${sect}\.html/http:\/\/manpages.debian.org\/cgi-bin\/man.cgi?query=${cmd}\&sektion=${sect}\&apropos=0\&manpath=Debian+8+jessie\&locale=/" $tmpfile2 > $tmpfile1
+		sed -e "s/\.\.\(\/man${sect}\/${cmd}\.${sect}\.html\)/http:\/\/man7.org\/linux\/man-pages\1/" $tmpfile2 > $tmpfile1
 		mv $tmpfile1 $tmpfile2
 	done
 
