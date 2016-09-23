@@ -6,10 +6,6 @@ Files: *
 Copyright: 2012-2016 Ericsson AB
 License: BSD-2-clause
 
-Files: lib/json.*
-Copyright: 2012-2014 James McLaughlin et al.
-License: BSD-2-clause
-
 Files: src/libminicoredumper/*.c
 Copyright: 2012-2016 Ericsson AB
 License: LGPL-2.1

@@ -49,5 +49,5 @@ install-data-local:
 	$(MKDIR_P) $(DESTDIR)$(MCD_DUMP_PATH)
 	chmod 0700 $(DESTDIR)$(MCD_DUMP_PATH)
 
-DIST_SUBDIRS = lib src
-SUBDIRS = lib src
+DIST_SUBDIRS = src
+SUBDIRS = src

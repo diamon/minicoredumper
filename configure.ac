@@ -66,6 +66,10 @@ PKG_CHECK_MODULES([libelf], [libelf], [],
 		  AC_CHECK_HEADERS([gelf.h], [libelf_LIBS=-lelf],
 				   [AC_MSG_ERROR([gelf.h missing!])]))
 
+PKG_CHECK_MODULES([libjsonc], [json-c], [],
+		  AC_CHECK_HEADERS([json-c/json.h], [libjsonc_LIBS=-ljson-c],
+				   [AC_MSG_ERROR([json-c/json.h missing!])]))
+
 AC_ARG_WITH([coreinject],
 	    [AS_HELP_STRING([--without-coreinject],
 	    [build coreinject tool @<:@default=with@:>@])])
@@ -172,5 +176,4 @@ AC_OUTPUT([Makefile
 	   src/minicoredumper/Makefile
 	   src/minicoredumper_regd/Makefile
 	   src/minicoredumper_trigger/Makefile
-	   src/minicoredumper_demo/Makefile
-	   lib/Makefile])
+	   src/minicoredumper_demo/Makefile])
