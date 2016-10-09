@@ -186,8 +186,10 @@ static int append_dump_data(struct mcd_dump_data *dump_data)
 	iter->next = dump_data;
 	err = 0;
 
-	handle_register();
 out:
+	if (err == 0)
+		handle_register();
+
 	pthread_mutex_unlock(&dump_mutex);
 
 	return err;
@@ -416,7 +418,8 @@ int mcd_dump_data_unregister(mcd_dump_data_t dd)
 	else
 		err = ENOKEY;
 
-	handle_unregister();
+	if (!mcd_dump_data_head)
+		handle_unregister();
 
 	pthread_mutex_unlock(&dump_mutex);
 
