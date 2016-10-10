@@ -48,6 +48,7 @@ etc/minicoredumper/minicoredumper.cfg.json: etc/minicoredumper/minicoredumper.cf
 install-data-local:
 	$(MKDIR_P) $(DESTDIR)$(MCD_DUMP_PATH)
 	chmod 0700 $(DESTDIR)$(MCD_DUMP_PATH)
+	$(MKDIR_P) $(DESTDIR)$(runstatedir)
 
 DIST_SUBDIRS = src
 SUBDIRS = src
