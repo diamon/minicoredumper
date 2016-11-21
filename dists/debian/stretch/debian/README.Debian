@@ -1,0 +1,9 @@
+minicoredumper for Debian
+-------------------------
+
+minicoredumper configured with: ./configure --prefix=/usr
+configuration files in: /etc/minicoredumper
+boot options in: /etc/default/minicoredumper
+default dump base_path: /var/crash/minicoredumper
+
+ -- John Ogness <john.ogness@linutronix.de>  Mon, 12 Sep 2016 14:41:45 +0200

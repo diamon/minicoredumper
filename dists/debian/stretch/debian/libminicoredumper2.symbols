@@ -1,0 +1,7 @@
+libminicoredumper.so.2 libminicoredumper2 #MINVER#
+ mcd_dump_data_head@Base 2.0.0
+ mcd_dump_data_register_bin@Base 2.0.0
+ mcd_dump_data_register_text@Base 2.0.0
+ mcd_dump_data_unregister@Base 2.0.0
+ mcd_dump_data_version@Base 2.0.0
+ mcd_vdump_data_register_text@Base 2.0.0
