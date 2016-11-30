@@ -19,12 +19,9 @@ include /usr/share/dpkg/default.mk
 
 export MCD_REGD_USER_GROUP = mcd:mcd
 
-override_dh_auto_install:
-	dh_auto_install --destdir debian/tmp
-
 override_dh_fixperms:
 	dh_fixperms --exclude var/crash
 
 # main packaging script based on dh7 syntax
 %:
-	dh $@  --with autotools-dev
+	dh $@

@@ -1,8 +1,8 @@
 Source: minicoredumper
 Section: devel
 Priority: optional
-Maintainer: John Ogness <john.ogness@linutronix.dd>
-Build-Depends: debhelper (>= 9), autotools-dev, libelf-dev, libjson-c-dev, pkg-config
+Maintainer: John Ogness <john.ogness@linutronix.de>
+Build-Depends: debhelper (>= 9), libelf-dev, libjson-c-dev, pkg-config
 Standards-Version: 3.9.6
 Homepage: https://www.linutronix.de/minicoredumper
 Vcs-Git: git://git.linuxfoundation.org/diamon/minicoredumper.git
