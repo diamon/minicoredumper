@@ -2,6 +2,58 @@
 minicoredumper Release Notes
 ============================
 
+2.0.0 (2016-11-30)
+
+    * Relicense public domain files as BSD-2-clause.
+
+    * Replace libjson.a with libjson-c.
+
+    * Improve autotool usage to provide a complete installation.
+
+    * Add support for finding symbols in stripped binaries.
+
+    * Relocate administration binaries to sbin directory.
+
+    * API function arguments rearranged for a more intuitive ordering.
+
+    * Add "ident" option to buffers for external dumps.
+
+    * Remove minicoredumper_regd and all D-Bus and inotify functionality.
+      This has been replaced by the minicoredumper_regd service.
+
+    * Add minicoredumper_regd service to track libminicoredumper-based
+      application registrations.
+
+    * Dumps now stored in PID subdirectories.
+
+    * coreinject updates custom ELF section in core file.
+
+    * Add support for custom data injecting with coreinject.
+
+    * Add MCD_DATA_NODUMP option for binary dumps.
+
+    * Use pkg-config to check for libelf.
+
+    * Add compile-time checks for API format arguments.
+
+    * Change text dump API to match scanf() syntax.
+
+    * Fix printing of "%%" in text dump strings.
+
+    * For sparseness, rely on shared memory rather than filesystems.
+
+    * Fix possible trailing data in tar file.
+
+    * Add custom ELF section to core file that lists the dumps.
+
+    * Fix dumping when dump occupies multiple VMA's.
+
+    * Known problems:
+
+        - broken for 32-bit applications using more than 2GB memory
+
+        - unable to dump libraries if they are linked using relative paths
+
 1.0.2 (2015-11-30)
 
     * Add inotify-based notification method.
