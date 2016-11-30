@@ -1,8 +1,5 @@
-# Compulsory line, this is a version 3 file
 version=3
-
-# <Webpage URL> <string match>
-https://www.linutronix.de/minicoredumper minicoredumper-(.*)\.tar\.gz
-
-# Check signature
-pgpsigurlmangle=s/$/.asc/
+opts="pgpsigurlmangle=s%$%.asc%" \
+    https://www.linutronix.de/minicoredumper/ \
+    files/minicoredumper-(.*)\.tar\.xz \
+    debian uupdate
