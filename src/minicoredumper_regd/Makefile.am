@@ -26,7 +26,8 @@
 
 sbin_PROGRAMS = minicoredumper_regd
 
-dist_man_MANS = minicoredumper_regd.1
+man_MANS = minicoredumper_regd.1
+EXTRA_DIST = $(man_MANS)
 
 minicoredumper_regd_SOURCES = daemon.c
 minicoredumper_regd_CPPFLAGS = $(MCD_CPPFLAGS) \

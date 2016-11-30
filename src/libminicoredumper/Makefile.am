@@ -27,9 +27,9 @@
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = minicoredumper.pc
 
-dist_man_MANS = libminicoredumper.7
+man_MANS = libminicoredumper.7
 
-EXTRA_DIST = minicoredumper.pc.in minicoredumper-uninstalled.pc.in
+EXTRA_DIST = minicoredumper.pc.in minicoredumper-uninstalled.pc.in $(man_MANS)
 
 lib_LTLIBRARIES = libminicoredumper.la
 

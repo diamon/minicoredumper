@@ -1,4 +1,4 @@
-debian/tmp/usr/share/man/man3/mcd_dump_data_unregister.3
-debian/tmp/usr/share/man/man3/mcd_vdump_data_register_text.3
-debian/tmp/usr/share/man/man3/mcd_dump_data_register_bin.3
-debian/tmp/usr/share/man/man3/mcd_dump_data_register_text.3
+src/api/mcd_dump_data_unregister.3
+src/api/mcd_vdump_data_register_text.3
+src/api/mcd_dump_data_register_bin.3
+src/api/mcd_dump_data_register_text.3

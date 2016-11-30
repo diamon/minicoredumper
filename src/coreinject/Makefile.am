@@ -26,7 +26,8 @@
 
 bin_PROGRAMS = coreinject
 
-dist_man_MANS = coreinject.1
+man_MANS = coreinject.1
+EXTRA_DIST = $(man_MANS)
 
 coreinject_SOURCES = main.c
 coreinject_CPPFLAGS = $(MCD_CPPFLAGS) \

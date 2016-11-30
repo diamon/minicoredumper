@@ -24,6 +24,8 @@
 ## POSSIBILITY OF SUCH DAMAGE.
 ##
 
-dist_sbin_SCRIPTS = minicoredumper_trigger
+sbin_SCRIPTS = minicoredumper_trigger
 
-dist_man_MANS = minicoredumper_trigger.1
+man_MANS = minicoredumper_trigger.1
+
+EXTRA_DIST = $(sbin_SCRIPTS) $(man_MANS)

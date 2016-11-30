@@ -1,2 +1,2 @@
-debian/tmp/usr/share/man/man1/coreinject.1
-debian/tmp/usr/share/man/man1/minicoredumper_trigger.1
+src/coreinject/coreinject.1
+src/minicoredumper_trigger/minicoredumper_trigger.1

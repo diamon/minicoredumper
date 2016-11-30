@@ -1,0 +1,11 @@
+Description: link to alias manpage
+ mcd_vdump_data_register_text.3 refers to the same manpage as
+ mcd_dump_data_register_text.3 so a symbolic link is created. The
+ upstream autotools also create this symbolic link.
+Author: John Ogness <john.ogness@linutronix.de>
+Last-Update: 2016-11-29
+
+--- /dev/null
++++ minicoredumper-2.0.0/src/api/mcd_vdump_data_register_text.3
+@@ -0,0 +1 @@
++.so man3/mcd_dump_data_register_text.3

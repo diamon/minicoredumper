@@ -26,8 +26,9 @@
 
 sbin_PROGRAMS = minicoredumper
 
-dist_man_MANS = minicoredumper.cfg.json.5 minicoredumper.recept.json.5 \
-		minicoredumper.1
+man_MANS = minicoredumper.cfg.json.5 minicoredumper.recept.json.5 \
+	   minicoredumper.1
+EXTRA_DIST = $(man_MANS)
 
 minicoredumper_SOURCES = corestripper.c corestripper.h \
 			 prog_config.c prog_config.h
