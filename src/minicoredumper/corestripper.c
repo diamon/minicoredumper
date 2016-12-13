@@ -1241,7 +1241,8 @@ static int dump_compressed_tar(struct dump_info *di)
 	snprintf(hdr.mode, sizeof(hdr.mode), "%07o", 0644);
 	snprintf(hdr.uid, sizeof(hdr.uid), "%07o", 0);
 	snprintf(hdr.gid, sizeof(hdr.gid), "%07o", 0);
-	snprintf(hdr.mtime, sizeof(hdr.mtime), "%011lo", time(NULL));
+	snprintf(hdr.mtime, sizeof(hdr.mtime), "%011lo",
+		 (long long)time(NULL));
 	memset(hdr.checksum, ' ', sizeof(hdr.checksum));
 	hdr.type = 'S';
 	memcpy(hdr.magic, "ustar ", 6);
