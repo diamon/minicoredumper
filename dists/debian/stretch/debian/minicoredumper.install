@@ -1,5 +1,0 @@
-usr/sbin/minicoredumper
-usr/sbin/minicoredumper_regd
-etc/minicoredumper/generic.recept.json
-etc/minicoredumper/minicoredumper.cfg.json
-var/crash

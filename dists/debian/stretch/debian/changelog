@@ -1,5 +1,0 @@
-minicoredumper (2.0.0-1) unstable; urgency=low
-
-  * Initial release (Closes: #837539)
-
- -- John Ogness <john.ogness@linutronix.de>  Wed, 30 Nov 2016 11:17:42 +0100
