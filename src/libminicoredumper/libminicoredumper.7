@@ -1,6 +1,6 @@
 '\" t
 .\"
-.\" Copyright (c) 2015-2016 Ericsson AB
+.\" Copyright (c) 2015-2017 Ericsson AB
 .\" All rights reserved.
 .\"
 .\" Redistribution and use in source and binary forms, with or without
@@ -24,7 +24,7 @@
 .\" ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 .\" POSSIBILITY OF SUCH DAMAGE.
 .\"
-.TH LIBMINICOREDUMPER 7 "2016-09-07" "Ericsson" "minicoredumper"
+.TH LIBMINICOREDUMPER 7 "2017-01-19" "Ericsson" "minicoredumper"
 .
 .SH NAME
 libminicoredumper \- a library for registering application data for dumping
@@ -42,16 +42,16 @@ file (in case this application crashes), or into separate files for simple
 access.
 .PP
 If any data is registered for dumping, an anonymous UNIX domain socket is
-used to send a message
+used to send a message to
 .BR minicoredumper_regd (1),
-registering this application with
+thus registering this application with the
 .BR minicoredumper (1).
 When some other application crashes, the
-.BR minicoredumper (1) will dump the registered data from this application
-as well. This feature allows variable information from multiple applications
-to be dumped soon after any application crashes. To minimize the time between
-an application crash and the dumping of other registered applications,
-the
+.BR minicoredumper (1)
+will dump the registered data from this application as well. This feature
+allows variable information from multiple applications to be dumped soon
+after any application crashes. To minimize the time between an application
+crash and the dumping of other registered applications, the
 .BR minicoredumper (1)
 uses PTRACE_SEIZE and PTRACE_INTERRUPT to temporarily pause registered
 applications until all dumping is complete.
