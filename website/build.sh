@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # create some temp files files
-tmpfile1=`tempfile`
-tmpfile2=`tempfile`
+tmpfile1=`mktemp`
+tmpfile2=`mktemp`
 
 index_content="src/index.splash.html
 		src/index.features.html

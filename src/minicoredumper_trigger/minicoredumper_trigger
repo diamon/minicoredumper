@@ -63,8 +63,8 @@ fi
 
 mkdir -p "$1"
 
-cfgfile=`tempfile`
-rcptfile=`tempfile`
+cfgfile=`mktemp`
+rcptfile=`mktemp`
 
 # create config with specified dump dir
 cat > $cfgfile << EOF
