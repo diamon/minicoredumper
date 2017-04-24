@@ -73,11 +73,11 @@ int __attribute__((optimize("O0"))) main(int argc, char *argv[])
 	mcd_dump_data_register_text("tdump3.txt", 6, &dd[2],
 				    "val1: %%lx=0x%lx", &val1);
 	mcd_dump_data_register_text("tdump3.txt", 6, &dd[3],
-				    " %%x=0x%x", &val1);
+				    " %%x=0x%x", (int*) &val1);
 	mcd_dump_data_register_text("tdump3.txt", 6, &dd[4],
-				    " %%hx=0x%hx", &val1);
+				    " %%hx=0x%hx", (short*) &val1);
 	mcd_dump_data_register_text("tdump3.txt", 6, &dd[5],
-				    " %%hhx=0x%hhx\n", &val1);
+				    " %%hhx=0x%hhx\n", (char *) &val1);
 	/* "val1=0x0 val2=0x0 val3=0x0\n" */
 	mcd_dump_data_register_text("tdump4.txt", 6, &dd[6],
 				    "val1=0x%lx val2=0x%lx "
