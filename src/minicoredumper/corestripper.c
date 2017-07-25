@@ -3616,7 +3616,7 @@ out:
 
 static int do_all_dumps(struct dump_info *di, int argc, char *argv[])
 {
-	struct config *cfg;
+	struct config *cfg = NULL;
 	const char *recept;
 	bool live_dumper;
 	char *comm_base;
