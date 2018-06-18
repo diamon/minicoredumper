@@ -1101,6 +1101,16 @@ static unsigned int get_tar_checksum(struct tar_header *header)
 	for (i = 0; i < BLOCK_SIZE; i++)
 		sum += 0xff & buf[i];
 
+	/*
+	 * There are only 7 characters available in the header to store the
+	 * checksum. With a block size of 512, only 6 characters are needed
+	 * for the maximal value. However, gcc does not realize this. The
+	 * final result is checked to help the compiler realize that this
+	 * function does indeed return a value that will fit in the header.
+	 * Note that this final check can never be true.
+	 */
+	if (sum > (BLOCK_SIZE * 0xff))
+		return 0;
 	return sum;
 }
 
