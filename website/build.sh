@@ -1,4 +1,9 @@
 #!/bin/sh
+#
+# Copyright (c) 2015-2018 Linutronix GmbH. All rights reserved.
+#
+# SPDX-License-Identifier: BSD-2-Clause
+#
 
 # create some temp files files
 tmpfile1=`mktemp`
