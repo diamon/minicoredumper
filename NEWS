@@ -2,6 +2,29 @@
 minicoredumper Release Notes
 ============================
 
+2.0.1 (2018-07-16)
+
+    * Use the SPDX format to specify all licenses.
+
+    * Update documentation.
+
+    * Fix various compiler warnings.
+
+    * Using mktemp(1) instead of tempfile(1) for temporary files.
+
+    * Reassign copyright of all files as requested by Ericsson AB and
+      agreed by Linutronix GmbH.
+
+    * Fix compile error on x32 architecture.
+
+    * Add README files for Debian and openembedded distributions.
+
+    * Known problems:
+
+        - broken for 32-bit applications using more than 2GB memory
+
+        - unable to dump libraries if they are linked using relative paths
+
 2.0.0 (2016-11-30)
 
     * Re-license public domain files as BSD-2-clause.
