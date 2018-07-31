@@ -14,7 +14,8 @@ index_content="src/index.splash.html
 		src/index.news.html
 		src/index.downloads.html
 		src/index.support.html"
-installation_content="src/installation.content.html"
+simple_content="src/installation.content.html
+		src/privacypolicy.content.html"
 faq_content="src/faq.test.html
 		src/faq.needdbus.html
 		src/faq.gdb.html
@@ -48,10 +49,13 @@ cat src/template/root.head.html $index_content src/template/root.tail.html > $tm
 REPLACE_ROOT $tmpfile1 root/index.html
 REPORT root/index.html
 
-# create installation page
-cat src/template/root.head.html $installation_content src/template/root.tail.html > $tmpfile1
-REPLACE_ROOT $tmpfile1 root/installation.html
-REPORT root/installation.html
+# create simple pages
+for item in $simple_content; do
+	html=`echo $item | sed -e 's,.*/,,' -e 's,\.content,,'`
+	cat src/template/root.head.html $item src/template/root.tail.html > $tmpfile1
+	REPLACE_ROOT $tmpfile1 root/$html
+	REPORT root/$html
+done
 
 # create faq page
 cat src/template/root.head.html > $tmpfile1
