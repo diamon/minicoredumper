@@ -63,9 +63,9 @@ Support
 
     Mailing List: https://lists.linutronix.de/mailman/listinfo/minicoredumper
 
-    Bug Tracker: https://bugs.linuxfoundation.org/buglist.cgi?product=Diamon&component=minicoredumper
+    Issue Tracker: https://github.com/diamon/minicoredumper/issues
 
-    Git Repository: http://git.linuxfoundation.org/?p=diamon/minicoredumper.git;a=summary
+    Git Repository: https://github.com/diamon/minicoredumper
 
 Demo
 ----
