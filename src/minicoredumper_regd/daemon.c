@@ -224,7 +224,7 @@ static int setup_shm(void)
 
 	pthread_mutexattr_init(&attr);
 	pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_INHERIT);
-	pthread_mutexattr_setrobust_np(&attr, PTHREAD_MUTEX_ROBUST_NP);
+	pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
 	pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
 	pthread_mutex_init(&sh->m, &attr);
 
