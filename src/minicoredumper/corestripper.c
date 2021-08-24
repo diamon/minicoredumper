@@ -3029,8 +3029,10 @@ static void get_pthread_list_fallback(struct dump_info *di)
 	unsigned long addr;
 
 	/* try to determine the size of "struct pthread" */
-	if (sym_address(di, "_thread_db_sizeof_pthread", &addr) == 0)
-		read_remote(di, addr, &pthreadsz, sizeof(pthreadsz));
+	if (sym_address(di, "_thread_db_sizeof_pthread", &addr) == 0) {
+		if (read_remote(di, addr, &pthreadsz, sizeof(pthreadsz)) != 0)
+			pthreadsz = 0;
+	}
 	if (pthreadsz == 0) {
 		pthreadsz = PAGESZ;
 		info("guessing sizeof(struct pthread): %u bytes", pthreadsz);
@@ -3197,7 +3199,8 @@ static int init_from_auxv(struct dump_info *di, ElfW(auxv_t) *auxv,
 		/* val32 = (ElfW(Phdr))phdr_addr[i].p_type */
 		addr = phdr_addr + (sizeof(ElfW(Phdr)) * i) +
 		       offsetof(ElfW(Phdr), p_type);
-		read_remote(di, addr, &val32, sizeof(val32));
+		if (read_remote(di, addr, &val32, sizeof(val32)) != 0)
+			break;
 
 		if (val32 == PT_NULL) {
 			break;
@@ -3205,7 +3208,10 @@ static int init_from_auxv(struct dump_info *di, ElfW(auxv_t) *auxv,
 		} else if (val32 == PT_PHDR) {
 			addr = phdr_addr + (sizeof(ElfW(Phdr)) * i) +
 			       offsetof(ElfW(Phdr), p_vaddr);
-			read_remote(di, addr, &relocation, sizeof(relocation));
+			if (read_remote(di, addr, &relocation,
+					sizeof(relocation)) != 0) {
+				break;
+			}
 			found |= 0x1;
 
 			relocation = phdr_addr - relocation;
@@ -3214,7 +3220,10 @@ static int init_from_auxv(struct dump_info *di, ElfW(auxv_t) *auxv,
 			/* dyn_addr = (ElfW(Phdr))phdr_addr[i].p_vaddr */
 			addr = phdr_addr + (sizeof(ElfW(Phdr)) * i) +
 			       offsetof(ElfW(Phdr), p_vaddr);
-			read_remote(di, addr, &dyn_addr, sizeof(dyn_addr));
+			if (read_remote(di, addr, &dyn_addr,
+					sizeof(dyn_addr)) != 0) {
+				break;
+			}
 			found |= 0x2;
 		}
 	}
@@ -3241,7 +3250,8 @@ static int init_from_auxv(struct dump_info *di, ElfW(auxv_t) *auxv,
 		/* val32 = (ElfW(Dyn))dyn_addr[i].d_tag */
 		addr = dyn_addr + (sizeof(ElfW(Dyn)) * i)
 		       + offsetof(ElfW(Dyn), d_tag);
-		read_remote(di, addr, &val32, sizeof(val32));
+		if (read_remote(di, addr, &val32, sizeof(val32)) != 0)
+			break;
 
 		if (val32 == DT_NULL) {
 			break;
@@ -3250,7 +3260,10 @@ static int init_from_auxv(struct dump_info *di, ElfW(auxv_t) *auxv,
 			/* debug_ptr = (ElfW(Dyn))dyn_addr[i].d_un.d_ptr */
 			addr = dyn_addr + (sizeof(ElfW(Dyn)) * i) +
 			       offsetof(ElfW(Dyn), d_un.d_ptr);
-			read_remote(di, addr, debug_ptr, sizeof(*debug_ptr));
+			if (read_remote(di, addr, debug_ptr,
+					sizeof(*debug_ptr)) != 0) {
+				break;
+			}
 
 			/* found it! */
 			found |= 0x4;
@@ -3312,8 +3325,10 @@ static int get_so_list(struct dump_info *di)
 		dump_vma(di, ptr, sizeof(struct r_debug), 0, "auxv r_debug");
 
 	/* get pointer to first link_map */
-	read_remote(di, ptr + offsetof(struct r_debug, r_map), &ptr,
-		    sizeof(ptr));
+	if (read_remote(di, ptr + offsetof(struct r_debug, r_map), &ptr,
+			sizeof(ptr)) != 0) {
+		return -1;
+	}
 
 	while (ptr) {
 		unsigned long addr = 0;
@@ -3326,8 +3341,10 @@ static int get_so_list(struct dump_info *di)
 		}
 
 		/* get pointer to link_map name */
-		read_remote(di, ptr + offsetof(struct link_map, l_name),
-			    &addr, sizeof(addr));
+		if (read_remote(di, ptr + offsetof(struct link_map, l_name),
+				&addr, sizeof(addr)) != 0) {
+			return -1;
+		}
 
 		if (alloc_remote_string(di, addr, &l_name) == 0) {
 			/* dump link_map name */
@@ -3339,20 +3356,22 @@ static int get_so_list(struct dump_info *di)
 			/* store so data since we are here */
 			if (l_name[0] != 0) {
 				/* get pointer to base address */
-				read_remote(di,
-					ptr + offsetof(struct link_map,
-						       l_addr),
-					&addr, sizeof(addr));
-
-				store_sym_data(di, l_name, addr);
+				if (read_remote(di,
+						ptr + offsetof(struct link_map,
+							       l_addr),
+						&addr, sizeof(addr)) == 0) {
+					store_sym_data(di, l_name, addr);
+				}
 			}
 
 			free(l_name);
 		}
 
 		/* get pointer to next link_map */
-		read_remote(di, ptr + offsetof(struct link_map, l_next),
-			    &ptr, sizeof(ptr));
+		if (read_remote(di, ptr + offsetof(struct link_map, l_next),
+				&ptr, sizeof(ptr)) != 0) {
+			return -1;
+		}
 	}
 
 	return 0;
