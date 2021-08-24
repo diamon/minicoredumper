@@ -2285,13 +2285,27 @@ out_err:
 #undef MAPS_LINE_MAXSIZE
 }
 
-static int read_remote(struct dump_info *di, unsigned long addr, void *dst,
-		       ssize_t len)
+static int do_exact_pread(int fd, void *buf, size_t nbytes, off64_t offset)
 {
 	int ret;
 
-	ret = pread64(di->mem_fd, dst, len, addr);
-	if (ret != len) {
+	while (nbytes != 0) {
+		ret = pread64(fd, buf, nbytes, offset);
+		if (ret == 0 || ret == -1)
+			return -1;
+
+		buf += ret;
+		offset += ret;
+		nbytes -= ret;
+	}
+
+	return 0;
+}
+
+static int read_remote(struct dump_info *di, unsigned long addr, void *dst,
+		       ssize_t len)
+{
+	if (do_exact_pread(di->mem_fd, dst, len, addr) != 0) {
 		info("read_remote failed: len=%d, addr=0x%lx, "
 		     "dest=0x%x, errno=\"%s\"",
 		     len, addr, dst, strerror(errno));
@@ -2321,8 +2335,7 @@ static int alloc_remote_string(struct dump_info *di, unsigned long addr,
 		return ENOMEM;
 
 	for (i = 1; i < REMOTE_STRING_MAX; i++) {
-		ret = pread64(di->mem_fd, ptr, i, addr);
-		if (ret != i) {
+		if (do_exact_pread(di->mem_fd, ptr, i, addr) != 0) {
 			ret = errno;
 			info("read_remote failed: addr %#lx: %s", addr,
 			     strerror(errno));
