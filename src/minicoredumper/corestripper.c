@@ -761,7 +761,7 @@ static int init_log(struct dump_info *di)
 typedef int elf_parse_cb(struct dump_info *di, Elf *elf, GElf_Phdr *phdr);
 
 static int do_elf_ph_parse(struct dump_info *di, GElf_Phdr *type,
-			   elf_parse_cb *callback)
+			   elf_parse_cb *callback, size_t *phnum_found)
 {
 	GElf_Ehdr ehdr_mem;
 	GElf_Ehdr *ehdr;
@@ -769,6 +769,9 @@ static int do_elf_ph_parse(struct dump_info *di, GElf_Phdr *type,
 	int err = -1;
 	size_t phnum;
 	size_t cnt;
+
+	if (phnum_found)
+		*phnum_found = 0;
 
 	/* start from beginning of core */
 	if (lseek64(di->elf_fd, 0, SEEK_SET) == -1) {
@@ -808,6 +811,9 @@ static int do_elf_ph_parse(struct dump_info *di, GElf_Phdr *type,
 		info("elf error: no program headers");
 		goto out;
 	}
+
+	if (phnum_found)
+		*phnum_found = phnum;
 
 	for (cnt = 0; cnt < phnum; cnt++) {
 		GElf_Phdr phdr_mem;
@@ -891,7 +897,7 @@ static int vma_cb(struct dump_info *di, Elf *elf, GElf_Phdr *phdr)
 /*
  * Tries to parse the found ELF headers and reads all vmas from it.
  */
-static int parse_vma_info(struct dump_info *di)
+static int parse_vma_info(struct dump_info *di, size_t *phnum_found)
 {
 	unsigned long min_off = ULONG_MAX;
 	unsigned long max_len = 0;
@@ -911,7 +917,7 @@ static int parse_vma_info(struct dump_info *di)
 	memset(&type, 0, sizeof(type));
 	type.p_type = PT_LOAD;
 	type.p_flags = PF_R;
-	if (do_elf_ph_parse(di, &type, vma_cb) != 0)
+	if (do_elf_ph_parse(di, &type, vma_cb, phnum_found) != 0)
 		return -1;
 
 	for (v = di->vma; v; v = v->next) {
@@ -1614,8 +1620,10 @@ int add_core_data(struct dump_info *di, off64_t dest_offset, size_t len,
  */
 static int init_src_core(struct dump_info *di, int src)
 {
+	size_t last_phnum = 0;
 	int tries = 0;
 	int ret = -1;
+	size_t phnum;
 	size_t len;
 	char *buf;
 	long pos;
@@ -1642,7 +1650,7 @@ again:
 		goto out;
 
 	/* try to elf-parse the core to read vma info */
-	ret = parse_vma_info(di);
+	ret = parse_vma_info(di, &phnum);
 
 	/* restore our position */
 	if (lseek64(di->elf_fd, pos, SEEK_SET) == -1)
@@ -1653,9 +1661,17 @@ again:
 
 		tries++;
 
-		/* maybe try again */
-		if (tries < 10)
+		if (phnum > last_phnum) {
+			/* new headers found, keep trying */
+			last_phnum = phnum;
 			goto again;
+		} else if (tries < 10) {
+			/*
+			 * even if no new headers are found,
+			 * retry at least 10 times
+			 */
+			goto again;
+		}
 
 		goto out;
 	}
@@ -2106,7 +2122,7 @@ static int dump_stacks(struct dump_info *di)
 		/* find and set the first task */
 		memset(&type, 0, sizeof(type));
 		type.p_type = PT_NOTE;
-		do_elf_ph_parse(di, &type, note_cb);
+		do_elf_ph_parse(di, &type, note_cb, NULL);
 	}
 
 	if (di->first_pid)
