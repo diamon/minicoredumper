@@ -972,7 +972,10 @@ static int copy_data(int src, int dest, int dest2, size_t len, char *pagebuf)
 		if (ret < 0) {
 			info("read core failed at 0x%lx",
 			     lseek64(src, 0, SEEK_CUR));
-			return -1;
+
+			/* skip this chunk */
+			lseek64(src, chunk, SEEK_CUR);
+			memset(pagebuf, 0, chunk);
 		}
 
 		ret = write_file_fd(dest, pagebuf, chunk);
