@@ -2034,8 +2034,8 @@ static int dump_vma(struct dump_info *di, unsigned long start, size_t len,
 		/* only dump what is actually in VMA */
 		if (dump_start < tmp->start)
 			dump_start = tmp->start;
-		if (dump_end > tmp->mem_end)
-			dump_end = tmp->mem_end;
+		if (dump_end > tmp->file_end)
+			dump_end = tmp->file_end;
 
 		/* make sure we have something to dump */
 		if (dump_start < dump_end) {
