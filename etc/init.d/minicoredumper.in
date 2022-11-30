@@ -49,6 +49,7 @@ do_start()
 	if [ "$MINICOREDUMPER_ACTIVATE" = 1 ]; then
 		echo '|@sbindir@/minicoredumper %P %u %g %s %t %h %e' \
 			> /proc/sys/kernel/core_pattern
+		echo 0x7fffffff > /proc/sys/kernel/core_pipe_limit
 	fi
 
 	[ "$MINICOREDUMPER_REGD_START" != 1 ] && return 0
@@ -70,6 +71,7 @@ do_stop()
 {
 	if [ "$MINICOREDUMPER_ACTIVATE" = 1 ]; then
 		echo core > /proc/sys/kernel/core_pattern
+		echo 0 > /proc/sys/kernel/core_pipe_limit
 	fi
 
 	[ "$MINICOREDUMPER_REGD_START" != 1 ] && return 0
