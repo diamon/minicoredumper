@@ -31,7 +31,8 @@ sudo cp etc/minicoredumper/*.recept.json /etc/minicoredumper/</pre>
   <div class="col-sm-12">
     <p>After modifying the configuration and recept files as needed, the minicoredumper dump utility is ready for use. Now Linux must be directed to use minicoredumper to handle the creation of core files:</p>
     <pre>echo '|/usr/sbin/minicoredumper %P %u %g %s %t %h %e' | sudo tee /proc/sys/kernel/core_pattern</pre>
-    <p>Note: This is not a persistent setting and must be performed on each system boot.</p>
+    <pre>echo 0x7fffffff | sudo tee /proc/sys/kernel/core_pipe_limit</pre>
+    <p>Note: These are not persistent settings and must be performed on each system boot.</p>
   </div>
 </div>
 <br>
