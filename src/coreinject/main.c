@@ -39,10 +39,10 @@ static void usage(const char *argv0)
 struct ident_data {
 	const char *filename;
 	const char *ident;
-	unsigned long dump_offset;
-	unsigned long core_offset;
-	unsigned long mem_offset;
-	unsigned long size;
+	off64_t dump_offset;
+	off64_t core_offset;
+	off64_t mem_offset;
+	off64_t size;
 };
 
 struct prog_option {
@@ -58,7 +58,7 @@ struct prog_option {
 
 static struct core_data *dump_list;
 
-static void add_dump_item(unsigned long mem_offset, unsigned long size)
+static void add_dump_item(off64_t mem_offset, off64_t size)
 {
 	struct core_data *cd;
 
@@ -81,17 +81,17 @@ static int write_core(FILE *f_core, FILE *f_dump, struct ident_data *d,
 	int err = -1;
 
 	/* seek in core */
-	if (fseek(f_core, d->core_offset, SEEK_SET) != 0) {
-		fprintf(stderr, "error: failed to seek to position 0x%lx for "
-				"ident %s in core (%s)\n",
+	if (fseeko(f_core, d->core_offset, SEEK_SET) != 0) {
+		fprintf(stderr,
+			"error: failed to seek to position 0x%" PRIx64 " for ident %s in core (%s)\n",
 			d->core_offset, d->ident, strerror(errno));
 		goto out;
 	}
 
 	/* seek in dump */
-	if (fseek(f_dump, d->dump_offset, SEEK_SET) != 0) {
-		fprintf(stderr, "error: failed to seek to position 0x%lx for "
-				"ident %s in dump (%s)\n",
+	if (fseeko(f_dump, d->dump_offset, SEEK_SET) != 0) {
+		fprintf(stderr,
+			"error: failed to seek to position 0x%" PRIx64 " for ident %s in dump (%s)\n",
 			d->dump_offset, d->ident, strerror(errno));
 		goto out;
 	}
@@ -99,19 +99,22 @@ static int write_core(FILE *f_core, FILE *f_dump, struct ident_data *d,
 	/* alloc data buffer */
 	buf = malloc(d->size);
 	if (!buf) {
-		fprintf(stderr, "error: out of memory allocating %ld bytes\n",
+		fprintf(stderr,
+			"error: out of memory allocating %" PRIx64 " bytes\n",
 			d->size);
 		goto out;
 	}
 
 	/* read from dump */
 	if (fread(buf, d->size, 1, f_dump) != 1) {
-		fprintf(stderr, "error: failed to read %ld bytes from dump\n",
+		fprintf(stderr,
+			"error: failed to read %" PRIx64 " bytes from dump\n",
 			d->size);
 		if (direct) {
 			fprintf(stderr, "  specify the data source for %s with:\n",
 				d->ident);
-			fprintf(stderr, "  --data=%s:%ld@<filename>+<offset>\n",
+			fprintf(stderr,
+				"  --data=%s:%" PRIx64 "@<filename>+<offset>\n",
 				d->ident, d->size);
 		}
 		goto out;
@@ -119,14 +122,15 @@ static int write_core(FILE *f_core, FILE *f_dump, struct ident_data *d,
 
 	/* write to core */
 	if (fwrite(buf, d->size, 1, f_core) != 1) {
-		fprintf(stderr, "error: failed to write %ld bytes to "
-				"core (%s)\n", d->size, strerror(errno));
+		fprintf(stderr,
+			"error: failed to write %" PRIx64 " bytes to core (%s)\n",
+			d->size, strerror(errno));
 		goto out;
 	}
 
 	add_dump_item(d->mem_offset, d->size);
 
-	printf("injected: %s, %ld bytes, %s\n", d->ident, d->size,
+	printf("injected: %s, %" PRIx64 " bytes, %s\n", d->ident, d->size,
 	       direct ? "direct" : "indirect");
 
 	err = 0;
@@ -142,10 +146,10 @@ static int get_ident_data(const char *ident, FILE *f_symmap,
 			  struct ident_data *indirect)
 {
 	struct ident_data *d;
-	unsigned long mem;
 	off64_t offset;
 	char line[128];
-	size_t size;
+	off64_t size;
+	off64_t mem;
 	char type;
 	char *p;
 	int i;
@@ -168,8 +172,8 @@ static int get_ident_data(const char *ident, FILE *f_symmap,
 			*p = 0;
 
 		/* ignore invalid lines */
-		if (sscanf(line, "%" PRIx64 " %lx %zx %c ", &offset, &mem,
-			   &size, &type) != 4) {
+		if (sscanf(line, "%" PRIx64 " %" PRIx64 " %" PRIx64 " %c ",
+			   &offset, &mem, &size, &type) != 4) {
 			continue;
 		}
 
