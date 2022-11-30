@@ -167,6 +167,11 @@ static int read_prog_compression_config(struct json_object *root,
 			if (!cfg->core_compressor)
 				return -1;
 
+			if (cfg->core_compressor[0] == 0) {
+				free(cfg->core_compressor);
+				cfg->core_compressor = NULL;
+			}
+
 		} else if (strcmp(n, "extension") == 0) {
 			if (cfg->core_compressor_ext)
 				free(cfg->core_compressor_ext);
