@@ -51,7 +51,6 @@ AC_TYPE_UINT64_T
 AC_PROG_GCC_TRADITIONAL
 AC_FUNC_FORK
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
-AC_FUNC_MALLOC
 AC_FUNC_MMAP
 AC_CHECK_FUNCS([dup2 ftruncate localtime_r memmove memset mkdir munmap pow socket strchr strdup strerror strndup strrchr strtol])
 
