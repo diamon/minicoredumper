@@ -24,7 +24,8 @@ faq_content="src/faq.test.html
 		src/faq.dumpstatic.html
 		src/faq.maxstacksize.html
 		src/faq.binindirectdump.html
-		src/faq.rlimit.html"
+		src/faq.rlimit.html
+		src/faq.corepipelimit.html"
 
 # replace the $ROOT$ variable in $1, store in $2
 REPLACE_ROOT()
