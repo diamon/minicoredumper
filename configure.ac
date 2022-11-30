@@ -34,7 +34,6 @@ LT_INIT
 
 AC_SYS_LARGEFILE
 
-AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS([fcntl.h inttypes.h limits.h stddef.h stdlib.h string.h sys/socket.h syslog.h unistd.h],
 		 [], [AC_MSG_ERROR([required header missing!])])
