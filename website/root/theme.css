@@ -16,3 +16,65 @@ body {
 .theme-showcase .navbar .container {
   width: auto;
 }
+
+.jumbotron {
+  padding-top: 4em;
+  padding-bottom: 1em;
+}
+
+.jumbotron > h1 {
+  font-size: 9em;
+  line-height: 25%;
+}
+
+.jumbotron > h1 > .sm-i {
+  font-size: 90%;
+}
+
+.jumbotron > h1 > .sm-n {
+  font-size: 81%;
+}
+
+.jumbotron > h1 > .sm-i2 {
+  font-size: 73%;
+}
+
+.jumbotron > h1 > .sm-c {
+  font-size: 66%;
+}
+
+.jumbotron > h1 > .sm-o {
+  font-size: 59%;
+}
+
+.jumbotron > h1 > .sm-r {
+  font-size: 53%;
+}
+
+.jumbotron > h1 > .sm-e {
+  font-size: 48%;
+}
+
+.jumbotron > h1 > .sm-d {
+  font-size: 43%;
+}
+
+.jumbotron > h1 > .sm-u {
+  font-size: 39%;
+}
+
+.jumbotron > h1 > .sm-m2 {
+  font-size: 35%;
+}
+
+.jumbotron > h1 > .sm-p {
+  font-size: 31%;
+}
+
+.jumbotron > h1 > .sm-e2 {
+  font-size: 28%;
+}
+
+.jumbotron > h1 > .sm-r2 {
+  font-size: 25%;
+}
