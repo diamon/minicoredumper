@@ -9,5 +9,4 @@ bin_PROGRAMS = minicoredumper_demo
 minicoredumper_demo_SOURCES = main.c
 minicoredumper_demo_CPPFLAGS = $(MCD_CPPFLAGS) \
 			       -I$(top_srcdir)/src/api
-minicoredumper_demo_CFLAGS = $(MCD_CFLAGS)
 minicoredumper_demo_LDADD = ../libminicoredumper/libminicoredumper.la

@@ -18,7 +18,6 @@ libminicoredumper_la_CPPFLAGS = $(MCD_CPPFLAGS) \
 				-I$(top_srcdir)/src/api \
 				-I$(top_srcdir)/src/common \
 				-DG_LOG_DOMAIN=\"minicoredumper\"
-libminicoredumper_la_CFLAGS = $(MCD_CFLAGS)
 libminicoredumper_la_LDFLAGS = -Wl,--exclude-libs,ALL
 libminicoredumper_la_LIBADD = ../common/libmcdident.la
 

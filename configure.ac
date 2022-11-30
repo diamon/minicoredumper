@@ -152,9 +152,6 @@ AS_IF([test "x$MCD_REGD_USER_GROUP" = x],
 MCD_CPPFLAGS="-Wall -D_GNU_SOURCE $MCD_WERROR -include \$(CONFIG_HEADER)"
 AC_SUBST([MCD_CPPFLAGS])
 
-MCD_CFLAGS="-std=c99"
-AC_SUBST([MCD_CFLAGS])
-
 init_ddir="${sysconfdir}/init.d"
 initdefaultsdir="${sysconfdir}/default"
 AS_IF([test "x$runstatedir" = x], [runstatedir="${localstatedir}/run"], [])

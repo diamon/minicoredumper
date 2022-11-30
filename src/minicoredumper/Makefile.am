@@ -19,7 +19,6 @@ minicoredumper_CPPFLAGS = $(MCD_CPPFLAGS) \
 			  -I$(top_srcdir)/src/libminicoredumper \
 			  -DMCD_CONF_PATH=\"$(MCD_CONF_PATH)\" \
 			  $(libelf_CFLAGS) $(libjsonc_CFLAGS)
-minicoredumper_CFLAGS = $(MCD_CFLAGS)
 minicoredumper_LDADD = ../common/libmcdelf.a \
 		       ../common/libmcdident.a \
 		       $(libelf_LIBS) $(libjsonc_LIBS) \
