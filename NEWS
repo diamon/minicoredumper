@@ -2,6 +2,37 @@
 minicoredumper Release Notes
 ============================
 
+2.0.2 (2022-11-30)
+
+    * Fix failed cross-configuring relating to autoconf and rpl_malloc.
+
+    * Fix core dumps for programs with huge amounts of ELF headers.
+
+    * Fix core dumps when requested to dump maps with no permissions, such
+      as [vvar].
+
+    * Fix core dumps when requested to dump maps of files, such as
+      libraries.
+
+    * Add proper return code handling for all i/o functions.
+
+    * Add large file support to coreinject.
+
+    * Set the maximum value (0x7fffffff) in kernel.core_pipe_limit
+      from the init script.
+
+    * Update autoconf for version 2.71. (2.69 is left as the minimum
+      because it is the version used on Debian/buster and is compatible
+      with these changes.)
+
+    * Do not try to invoke a compressor that was specified as an empty
+      string.
+
+    * Use new POSIX function pthread_mutexattr_setrobust() instead of
+      pthread_mutexattr_setrobust_np().
+
+    * Update documentation URLs to issue tracker and git repository.
+
 2.0.1 (2018-07-16)
 
     * Use the SPDX format to specify all licenses.
