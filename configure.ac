@@ -156,7 +156,7 @@ AC_SUBST([init_ddir])
 AC_SUBST([initdefaultsdir])
 AC_SUBST([runstatedir])
 
-AC_OUTPUT([Makefile
+AC_CONFIG_FILES([Makefile
 	   src/Makefile
 	   src/api/Makefile
 	   src/common/Makefile
@@ -168,3 +168,4 @@ AC_OUTPUT([Makefile
 	   src/minicoredumper_regd/Makefile
 	   src/minicoredumper_trigger/Makefile
 	   src/minicoredumper_demo/Makefile])
+AC_OUTPUT
