@@ -11,8 +11,13 @@
 #include <sys/types.h>
 
 #include "minicoredumper.h"
-
-int __attribute__((optimize("O0"))) main(int argc, char *argv[])
+int
+#ifdef __clang__
+__attribute__((optnone))
+#else
+__attribute__((optimize("O0")))
+#endif
+main(int argc, char *argv[])
 {
 	char *str1 = "This is string 1.";
 	unsigned long val1 = 0x1abc123f;
