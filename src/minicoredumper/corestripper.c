@@ -1120,10 +1120,15 @@ static off64_t block_roundup(off64_t b)
 
 static int dump_zero(int fd, off64_t count)
 {
+	static char zero_block[4096];
+	size_t sz = sizeof(zero_block);
+
 	while (count) {
-		if (write_file_fd(fd, "", 1) < 0)
+		if (count < sizeof(zero_block))
+			sz = count;
+		if (write_file_fd(fd, zero_block, sz) < 0)
 			return -1;
-		count--;
+		count -= sz;
 	}
 
 	return 0;
