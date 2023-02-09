@@ -52,6 +52,14 @@
 #define PTRACE_INTERRUPT 0x4207
 #endif
 
+/*
+ * The ustar format only has 11 octal characters available for
+ * specifying sizes and offsets. So the maximum value is:
+ *
+ *       077777777777 => 8589934591
+ */
+#define USTAR_MAXVAL 8589934591
+
 static struct dump_info *global_di;
 static long PAGESZ;
 
@@ -1513,6 +1521,15 @@ int add_core_data(struct dump_info *di, off64_t dest_offset, size_t len,
 
 	end = start + len;
 
+	if (di->cfg->prog_config.core_in_tar &&
+	    di->cfg->prog_config.core_compressor &&
+	    (start > USTAR_MAXVAL || end > USTAR_MAXVAL)) {
+		info("core data too large for ustar format "
+		     "(0x%" PRIx64 "-0x%" PRIx64 "), dropping",
+		     start, end);
+		return EFBIG;
+	}
+
 	for (cur = di->core_file; cur && !done; cur = cur->next) {
 		if (end < cur->start) {
 			/* insert new block */
@@ -1628,6 +1645,26 @@ int add_core_data(struct dump_info *di, off64_t dest_offset, size_t len,
 }
 
 /*
+ * In case the core file is packed into a tar, make sure the core file
+ * size does not exceed the value limits of the ustar format.
+ */
+static void check_core_size(struct dump_info *di)
+{
+	if (!di->cfg->prog_config.core_in_tar)
+		return;
+	if (!di->cfg->prog_config.core_compressor)
+		return;
+	if (di->core_file_size <= USTAR_MAXVAL)
+		return;
+
+	info("core is too large for ustar format (%" PRIu64 " bytes), "
+	     "truncating to %" PRIu64 " bytes",
+	     di->core_file_size, USTAR_MAXVAL);
+
+	di->core_file_size = USTAR_MAXVAL;
+}
+
+/*
  * Reads the ELF header from the large core file.
  * This header is dumped to the core.
  */
@@ -1702,6 +1739,7 @@ again:
 
 	/* make the core big enough to fit all vma areas */
 	di->core_file_size = di->vma_end;
+	check_core_size(di);
 
 	/* add empty core data to mark the size of the core file */
 	add_core_data(di, di->core_file_size, 0, di->elf_fd, 0);
@@ -3462,6 +3500,7 @@ static int add_dumplist_section(struct dump_info *di)
 	}
 
 	di->core_file_size = core_size;
+	check_core_size(di);
 
 	add_core_data(di, dump_offset, core_size - dump_offset,
 		      di->elf_fd, dump_offset);
