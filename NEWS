@@ -2,6 +2,21 @@
 minicoredumper Release Notes
 ============================
 
+2.0.3 (2023-02-11)
+
+    * Dump zero-blocks as 4KB blocks instead of single bytes to speed up
+      piping to the compressor. (Only relevant if tar is not used.)
+
+    * Drop core data exceeding the ustar 8GB limit. The core file is
+      appropriately truncated and the actions are logged. This fixes tar
+      file corruption for core files >8GB.
+
+    * Known problems:
+
+        - If tar is active, core files larger than 8GB will be
+          truncated. If it is known that the core files will be >8GB and
+          the full core file is needed, tar must be disabled.
+
 2.0.2 (2022-11-30)
 
     * Fix failed cross-configuring relating to autoconf and rpl_malloc.
