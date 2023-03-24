@@ -125,6 +125,9 @@ static ssize_t read_file_fd(int fd, char *dst, int len)
 		if (r > 0) {
 			size += r;
 			len -= r;
+		} else {
+			info("Couldn't read file fd=%d; unexpected eof", fd);
+			return r;
 		}
 	} while (len > 0);
 
