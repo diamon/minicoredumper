@@ -2,6 +2,18 @@
 minicoredumper Release Notes
 ============================
 
+2.0.4 (2023-04-25)
+
+    * Abort memory read if the crashed program is killed while the
+      minicoredumper is actively reading memory. This fixes a possible
+      endless loop in said scenario.
+
+    * Known problems:
+
+        - If tar is active, core files larger than 8GB will be
+          truncated. If it is known that the core files will be >8GB and
+          the full core file is needed, tar must be disabled.
+
 2.0.3 (2023-02-11)
 
     * Dump zero-blocks as 4KB blocks instead of single bytes to speed up
