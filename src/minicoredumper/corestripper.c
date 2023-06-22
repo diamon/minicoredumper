@@ -843,7 +843,7 @@ static int do_elf_ph_parse(struct dump_info *di, GElf_Phdr *type,
 
 		/* if flags specified, they must match */
 		if (type->p_flags) {
-			if ((phdr->p_flags & type->p_flags) != type->p_flags)
+			if ((phdr->p_flags & type->p_flags) == 0)
 				continue;
 		}
 
@@ -927,7 +927,7 @@ static int parse_vma_info(struct dump_info *di, size_t *phnum_found)
 	/* looking for readable loadable program segments */
 	memset(&type, 0, sizeof(type));
 	type.p_type = PT_LOAD;
-	type.p_flags = PF_R;
+	type.p_flags = PF_R | PF_W;
 	if (do_elf_ph_parse(di, &type, vma_cb, phnum_found) != 0)
 		return -1;
 
