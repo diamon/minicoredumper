@@ -2,6 +2,16 @@
 minicoredumper Release Notes
 ============================
 
+2.0.5 (2023-06-22)
+
+    * Also dump write-only memory segments.
+
+    * Known problems:
+
+        - If tar is active, core files larger than 8GB will be
+          truncated. If it is known that the core files will be >8GB and
+          the full core file is needed, tar must be disabled.
+
 2.0.4 (2023-04-25)
 
     * Abort memory read if the crashed program is killed while the
