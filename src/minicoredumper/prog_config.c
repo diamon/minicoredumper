@@ -184,6 +184,10 @@ static int read_prog_compression_config(struct json_object *root,
 			if (get_json_boolean(v, &cfg->core_in_tar) != 0)
 				return -1;
 
+		} else if (strcmp(n, "use_posix_for_tar") == 0) {
+			if (get_json_boolean(v, &cfg->using_posix_format) != 0)
+				return -1;
+
 		} else {
 			info("WARNING: ignoring unknown config item: %s", n);
 		}
@@ -692,6 +696,9 @@ static void set_config_defaults(struct prog_config *cfg)
 
 	/* for compression, pack in tarball */
 	cfg->core_in_tar = true;
+
+	/* use posix archive format */
+	cfg->using_posix_format = true;
 }
 
 int init_prog_config(struct config *cfg, const char *cfg_file)
