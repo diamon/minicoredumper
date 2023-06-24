@@ -1996,6 +1996,14 @@ static int get_stack_pointer(pid_t pid, unsigned long *addr)
 		p = strchr(p, ' ');
 		if (!p)
 			goto out_err;
+		/*
+		 * Item 2 (comm) can contain spaces, which complicates the
+		 * parsing since a space is also the field delimeter. This
+		 * item is enclosed in parentheses, so do not continue until
+		 * a trailing parenthesis is seen.
+		 */
+		if (i == 1 && (*(p-1)) != ')')
+			i--;
 		p++;
 	}
 
