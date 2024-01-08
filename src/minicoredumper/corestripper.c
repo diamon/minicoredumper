@@ -3036,22 +3036,25 @@ static int get_robust_mutex_list(struct dump_info *di)
 	dump_vma(di, l_head, sizeof(struct robust_list_head), 0,
 		 "robust mutex head");
 
-	if (read_remote(di, l_head + offsetof(struct robust_list_head, list),
-			&l_start, sizeof(l_start)) != 0) {
-		return 1;
-	}
-
+	l_start = l_head + offsetof(struct robust_list_head, list);
 	l_tmp = l_start;
-	do {
-		dump_vma(di, l_tmp, sizeof(struct robust_list), 0,
-			 "robust mutex");
 
+	while (1) {
 		if (read_remote(di, l_tmp + offsetof(struct robust_list, next),
 				&l_tmp, sizeof(l_tmp)) != 0) {
 			return 1;
 		}
 
-	} while (l_tmp != l_start);
+		/* glibc uses bit0 of pointer to flag PI mutex */
+		l_tmp = l_tmp & ~1UL;
+
+		/* the last list item points back to the start */
+		if (l_tmp == l_start)
+			break;
+
+		dump_vma(di, l_tmp, sizeof(struct robust_list), 0,
+			 "robust mutex");
+	}
 
 	return 0;
 }
