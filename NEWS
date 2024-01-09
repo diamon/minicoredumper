@@ -2,6 +2,20 @@
 minicoredumper Release Notes
 ============================
 
+2.0.7 (2024-01-09)
+
+    * Fix robust mutex list dumping if a robust mutex uses the
+      PTHREAD_PRIO_INHERIT attribute.
+
+    * Avoid bogus error messages when dumping registered data for
+      non-crashing processes.
+
+    * Known problems:
+
+        - If tar is active, core files larger than 8GB will be
+          truncated. If it is known that the core files will be >8GB and
+          the full core file is needed, tar must be disabled.
+
 2.0.6 (2023-06-24)
 
     * Support comm names with spaces.

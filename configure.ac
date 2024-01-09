@@ -1,11 +1,11 @@
 #
-# Copyright (c) 2015-2023 Linutronix GmbH. All rights reserved.
+# Copyright (c) 2015-2024 Linutronix GmbH. All rights reserved.
 #
 # SPDX-License-Identifier: BSD-2-Clause
 #
 
 AC_PREREQ([2.69])
-AC_INIT([minicoredumper],[2.0.6],[john.ogness@linutronix.de],[minicoredumper],[https://www.linutronix.de/minicoredumper])
+AC_INIT([minicoredumper],[2.0.7],[john.ogness@linutronix.de],[minicoredumper],[https://www.linutronix.de/minicoredumper])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
