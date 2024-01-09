@@ -37,8 +37,7 @@ MINICOREDUMPER_REGD_START=0
 . /lib/init/vars.sh
 
 # Define LSB log_* functions.
-# Depend on lsb-base (>= 3.2-14) to ensure that this file is present
-# and status_of_proc is working.
+# This file is provided by the essential sysvinit-utils package.
 . /lib/lsb/init-functions
 
 #
