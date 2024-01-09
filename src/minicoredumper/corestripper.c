@@ -2765,7 +2765,7 @@ static int dump_data_content(struct dump_info *di, struct mcd_dump_data *dd,
 	if (dd->ident) {
 		/* dump to external file */
 		ret = dump_data_content_file(di, dd);
-	} else {
+	} else if (di->core_fd >= 0) {
 		/* dump to core */
 		ret = dump_data_content_core(di, dd, symname);
 	}
