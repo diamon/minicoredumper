@@ -2707,7 +2707,7 @@ static int dump_data_content_file(struct dump_info *di,
 	char *tmp_path;
 	FILE *file;
 	int len;
-	int ret;
+	int ret = -1;
 
 	len = strlen(di->dst_dir) + strlen("/dumps/") + 32 +
 	      strlen(dd->ident) + 1;
@@ -2760,7 +2760,7 @@ out:
 static int dump_data_content(struct dump_info *di, struct mcd_dump_data *dd,
 			     const char *symname)
 {
-	int ret;
+	int ret = -1;
 
 	if (dd->ident) {
 		/* dump to external file */
