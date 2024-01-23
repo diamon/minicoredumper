@@ -2760,7 +2760,7 @@ out:
 static int dump_data_content(struct dump_info *di, struct mcd_dump_data *dd,
 			     const char *symname)
 {
-	int ret;
+	int ret = 0;
 
 	if (dd->ident) {
 		/* dump to external file */
