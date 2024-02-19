@@ -44,6 +44,7 @@ struct prog_config {
 	char *core_compressor;
 	char *core_compressor_ext;
 	bool core_in_tar;
+	bool using_posix_format;
 	bool core_compressed;
 	bool dump_fat_core;
 	bool dump_auxv_so_list;
