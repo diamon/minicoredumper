@@ -617,7 +617,7 @@ static int init_di(struct dump_info *di, int argc, char *argv[])
 	if (*p != 0)
 		return 1;
 
-	di->timestamp = strtol(argv[5], &p, 10);
+	di->timestamp = (time_t)strtoll(argv[5], &p, 10);
 	if (*p != 0)
 		return 1;
 
@@ -3715,7 +3715,7 @@ static int do_all_dumps(struct dump_info *di, int argc, char *argv[])
 	bool live_dumper;
 	char *comm_base;
 	pid_t core_pid;
-	long timestamp;
+	time_t timestamp;
 	char *comm;
 	char *exe;
 	char *p;
@@ -3750,7 +3750,7 @@ static int do_all_dumps(struct dump_info *di, int argc, char *argv[])
 	if (*p != 0)
 		return 1;
 
-	timestamp = strtol(argv[5], &p, 10);
+	timestamp = (time_t)strtoll(argv[5], &p, 10);
 	if (*p != 0)
 		return 1;
 
