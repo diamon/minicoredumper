@@ -240,9 +240,9 @@ static int inject_data(FILE *f_core, FILE *f_symmap, const char *b_fname,
 	struct ident_data indirect;
 	struct ident_data direct;
 	const char *ident;
+	const char *p;
 	FILE *f_dump;
 	int err = 0;
-	char *p;
 
 	/* extract ident name from file path */
 	p = strrchr(b_fname, '/');
