@@ -55,11 +55,11 @@ Documentation
 The following man pages are provided with this package:
 
 - [libminicoredumper (7)](https://www.linutronix.de/minicoredumper/man/man7/libminicoredumper.7.html)
-- [minicoredumper (1)](https://www.linutronix.de/minicoredumper/man/man1/minicoredumper.1.html)
+- [minicoredumper (8)](https://www.linutronix.de/minicoredumper/man/man8/minicoredumper.8.html)
 - [minicoredumper.cfg.json (5)](https://www.linutronix.de/minicoredumper/man/man5/minicoredumper.cfg.json.5.html)
 - [minicoredumper.recept.json (5)](https://www.linutronix.de/minicoredumper/man/man5/minicoredumper.recept.json.5.html)
-- [minicoredumper_regd (1)](https://www.linutronix.de/minicoredumper/man/man1/minicoredumper_regd.1.html)
-- [minicoredumper_trigger (1)](https://www.linutronix.de/minicoredumper/man/man1/minicoredumper_trigger.1.html)
+- [minicoredumper_regd (8)](https://www.linutronix.de/minicoredumper/man/man8/minicoredumper_regd.8.html)
+- [minicoredumper_trigger (8)](https://www.linutronix.de/minicoredumper/man/man8/minicoredumper_trigger.8.html)
 - [coreinject (1)](https://www.linutronix.de/minicoredumper/man/man1/coreinject.1.html)
 - [mcd_dump_data_register_bin (3)](https://www.linutronix.de/minicoredumper/man/man3/mcd_dump_data_register_bin.3.html)
 - [mcd_dump_data_register_text (3)](https://www.linutronix.de/minicoredumper/man/man3/mcd_dump_data_register_text.3.html)

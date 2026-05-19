@@ -6,6 +6,6 @@
 
 sbin_SCRIPTS = minicoredumper_trigger
 
-man_MANS = minicoredumper_trigger.1
+man_MANS = minicoredumper_trigger.8
 
 EXTRA_DIST = $(sbin_SCRIPTS) $(man_MANS)

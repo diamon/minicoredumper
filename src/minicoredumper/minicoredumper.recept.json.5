@@ -8,11 +8,11 @@
 .
 .SH NAME
 minicoredumper.recept.json \- a recept file used by the
-.BR minicoredumper (1)
+.BR minicoredumper (8)
 .
 .SH DESCRIPTION
 A recept configuration file defines the dump behavior of the
-.BR minicoredumper (1).
+.BR minicoredumper (8).
 .B minicoredumper.recept.json
 is a sample recept file name. The actual name depends on the
 .I recept
@@ -68,7 +68,7 @@ to identify mutex attributes and states in shared memory.
 .TP
 .B live_dumper
 (boolean) Whether the
-.BR minicoredumper (1)
+.BR minicoredumper (8)
 should trigger all registered
 .BR libminicoredumper (7)
 applications when a dump occurs.
@@ -79,7 +79,7 @@ dump directory.
 .TP
 .B write_debug_log
 (boolean) Whether
-.BR minicoredumper (1)
+.BR minicoredumper (8)
 messages should be logged to "debug.txt" in the dump directory. This is
 particularly useful if
 .BR syslog (3)
@@ -91,7 +91,7 @@ This will generate a separate "fatcore" file that is typically larger
 than the default Linux
 .BR core (5)
 files. This is really only useful for debugging
-.BR minicoredumper (1).
+.BR minicoredumper (8).
 .
 .SH STACKS
 The
@@ -112,7 +112,7 @@ options are ignored.
 (integer) The maximum stack size in bytes to dump. 0 for no limit.
 .PP
 The
-.BR minicoredumper (1)
+.BR minicoredumper (8)
 only dumps the actual used part of a stack area. If a stack is truncated
 because of the
 .I max_stack_size
@@ -273,10 +273,10 @@ Here is an example of a recept file:
 .fi
 .
 .SH "SEE ALSO"
-.BR minicoredumper (1),
+.BR minicoredumper (8),
 .BR libminicoredumper (7),
 .BR minicoredumper.cfg.json (5),
 .BR coreinject (1),
-.BR minicoredumper_regd (1)
+.BR minicoredumper_regd (8)
 .PP
 The DiaMon Workgroup: <http://www.diamon.org>

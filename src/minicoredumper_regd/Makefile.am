@@ -6,7 +6,7 @@
 
 sbin_PROGRAMS = minicoredumper_regd
 
-man_MANS = minicoredumper_regd.1
+man_MANS = minicoredumper_regd.8
 EXTRA_DIST = $(man_MANS)
 
 minicoredumper_regd_SOURCES = daemon.c

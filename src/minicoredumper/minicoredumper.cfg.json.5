@@ -8,19 +8,19 @@
 .
 .SH NAME
 minicoredumper.cfg.json \- the main configuration file for
-.BR minicoredumper (1)
+.BR minicoredumper (8)
 .
 .SH DESCRIPTION
 .B minicoredumper.cfg.json
 is the main configuration file for
-.BR minicoredumper (1).
+.BR minicoredumper (8).
 It serves 2 purposes:
 .RS
 .IP 1. 3
 define where dumped files should be located
 .IP 2. 3
 specify various
-.BR minicoredumper (1)
+.BR minicoredumper (8)
 recepts for various conditions
 .RE
 .
@@ -49,7 +49,7 @@ A condition can contain any combination of these options:
 .B comm
 (string) The basename of the command that was run
 (the 7th argument of the
-.BR minicoredumper (1)
+.BR minicoredumper (8)
 call).
 .TP
 .B recept
@@ -94,7 +94,7 @@ The exact path where data is dumped is logged to
 .BR syslog (3).
 .PP
 If an 8th argument of
-.BR minicoredumper (1)
+.BR minicoredumper (8)
 is provided, the name and location of this file will depend on that value.
 .
 .SH EXAMPLES
@@ -159,7 +159,7 @@ The second condition will match if the basename of the command is
 .PP
 The third condition will match for any binaries under "/bin/*". It will use
 the built-in
-.BR minicoredumper (1)
+.BR minicoredumper (8)
 defaults.
 .PP
 The fourth condition will match everything. It will use the recept file:
@@ -188,7 +188,7 @@ A minimal (yet still useful) configuration file could look like this:
 /etc/minicoredumper/minicoredumper.cfg.json
 .
 .SH "SEE ALSO"
-.BR minicoredumper (1),
+.BR minicoredumper (8),
 .BR libminicoredumper (7),
 .BR minicoredumper.recept.json (5)
 .PP
