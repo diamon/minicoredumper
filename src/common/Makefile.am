@@ -1,5 +1,5 @@
 ##
-## Copyright (c) 2016-2018 Linutronix GmbH. All rights reserved.
+## Copyright (c) 2016-2022 Linutronix GmbH. All rights reserved.
 ##
 ## SPDX-License-Identifier: BSD-2-Clause
 ##
