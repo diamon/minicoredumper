@@ -114,6 +114,8 @@ case "$1" in
 	esac
 	;;
   status)
+	grep -q '^|@sbindir@/minicoredumper ' /proc/sys/kernel/core_pattern || exit 1
+	[ "$MINICOREDUMPER_REGD_START" != 1 ] && exit 0
 	status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
 	;;
   restart|force-reload)
