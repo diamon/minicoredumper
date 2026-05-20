@@ -2,6 +2,26 @@
 minicoredumper Release Notes
 ============================
 
+2.0.8 (2026-05-10)
+
+    * Address multiple compiler warnings and errors found by more recent
+      toolchains. The issues existed technically, but were not a problem
+      for real-world usage scenarios.
+
+    * Relocate the man pages for sbin binaries to section 8.
+
+    * Fix timestamp value in the core dump directory name for 32-bit
+      systems with a 64-bit time_t definition after 2038-01-19.
+
+    * Improve status query for init script to check core_pattern usage and
+      handle when the regd daemon is not enabled.
+
+    * Known problems:
+
+        - If tar is active, core files larger than 8GB will be
+          truncated. If it is known that the core files will be >8GB and
+          the full core file is needed, tar must be disabled.
+
 2.0.7 (2024-01-09)
 
     * Fix robust mutex list dumping if a robust mutex uses the
