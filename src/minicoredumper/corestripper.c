@@ -36,6 +36,7 @@
 #include "minicoredumper.h"
 #include "common.h"
 #include "corestripper.h"
+#include "tar.h"
 
 /* /BASEDIR/IMAGE.TIMESTAMP.PID */
 #define CORE_DIR_FMT "%s/%s.%s.%i"
@@ -107,6 +108,19 @@ void fatal(const char *fmt, ...)
 	}
 
 	exit(1);
+}
+
+/* Returns the number of digits in a number 'n'. */
+int num_digits(off64_t n)
+{
+	int count = 0;
+
+	do {
+		n /= 10;
+		++count;
+	} while (n != 0);
+
+	return count;
 }
 
 static ssize_t read_file_fd(int fd, char *dst, int len)
@@ -728,6 +742,10 @@ static int init_di(struct dump_info *di, int argc, char *argv[])
 	if (asprintf(&tmp_path, "/proc/%i/mem", di->pid) == -1)
 		return 1;
 
+	/*
+	 * Open the memory of the program for reading. The memory location for a
+	 * process is at /proc/PID/mem.
+	 */
 	di->mem_fd = open(tmp_path, O_RDONLY);
 	if (di->mem_fd < 0) {
 		info("unable to open mem \'%s\': %s", tmp_path,
@@ -1016,40 +1034,6 @@ static int copy_data(int src, int dest, int dest2, size_t len, char *pagebuf)
 	return 0;
 }
 
-struct sparse {
-	char offset[12];
-	char numbytes[12];
-};
-
-struct tar_header {
-	char name[100];
-	char mode[8];
-	char uid[8];
-	char gid[8];
-	char numbytes[12];
-	char mtime[12];
-	char checksum[8];
-	char type;
-	char linkname[100];
-	char magic[6];
-	char version[2];
-	char username[32];
-	char groupname[32];
-	char dev_major[8];
-	char dev_minor[8];
-	char atime[12];
-	char ctime[12];
-	char multivolume_offset[12];
-	char longnames[4];
-	char pad0;
-	struct sparse sparse_map[4];
-	char is_extended;
-	char filesize[12];
-	char pad1[17];
-};
-
-#define BLOCK_SIZE 512
-
 /* group core data items into 512-byte blocks */
 static void assign_tar_blocks(struct core_data *core_file)
 {
@@ -1097,7 +1081,7 @@ static struct core_data *get_tar_block_map(struct core_data *cur,
 	return cur->next;
 }
 
-static unsigned int get_tar_checksum(struct tar_header *header)
+static unsigned int get_tar_checksum(char *header)
 {
 	char *buf = (char *)header;
 	int sum = 0;
@@ -1167,6 +1151,8 @@ static int open_compressor(struct dump_info *di, const char *core_suffix,
 	char *tmp_path;
 	int pipefd[2];
 	pid_t pid;
+
+	/* File descriptor of the compressed core dump. */
 	int fd;
 
 	*path = NULL;
@@ -1202,17 +1188,25 @@ static int open_compressor(struct dump_info *di, const char *core_suffix,
 		/* parent */
 		signal(SIGPIPE, SIG_IGN);
 		close(fd);
+
+		/* Parent process doesn't use read end of pipe 'pipefd[0]'. */
 		close(pipefd[0]);
 		*path = tmp_path;
+
+		/* Write to 'pipefd[1]' passes input to compressor. */
 		return pipefd[1];
 	}
 
 	/* child */
 	close(pipefd[1]);
 
+	/* Duplicate read end of pipe to STDIN for child process. */
 	dup2(pipefd[0], STDIN_FILENO);
+
+	/* Duplicate output stream 'fd' to STDOUT for child process. */
 	dup2(fd, STDOUT_FILENO);
 
+	/* Replace current (child) process with compressor process. */
 	execlp(cmd, cmd, NULL);
 
 	info("failed to execute compressor: %s", cmd);
@@ -1226,7 +1220,7 @@ static void close_compressor(int fd)
 	signal(SIGPIPE, SIG_DFL);
 }
 
-static int dump_compressed_tar(struct dump_info *di)
+static int dump_compressed_gnu_tar(struct dump_info *di)
 {
 	struct core_data *extended_data = NULL;
 	struct core_data *next_block;
@@ -1303,7 +1297,7 @@ static int dump_compressed_tar(struct dump_info *di)
 
 	/* calculate checksum */
 	snprintf(hdr.checksum, sizeof(hdr.checksum),
-		 "%06o", get_tar_checksum(&hdr));
+		 "%06o", get_tar_checksum((char *)&hdr));
 
 	fd = open_compressor(di, ".tar", &path);
 	if (fd < 0)
@@ -1409,6 +1403,327 @@ out:
 	free(buf);
 
 	return err;
+}
+
+/*
+ * Fills the name field of posix tar header in format "<prefix><pid>/core".
+ * Assumption: name fits in allocated 100 character width.
+ * 'str' is the name/destination.
+ */
+static void fill_pax_header_name(char *str, const char *prefix,
+                                 const int prefix_len)
+{
+	int rem;
+	int pid = getpid();
+	int len = num_digits((off64_t) pid);
+
+	memcpy(str, prefix, prefix_len);
+
+	int ii;
+	for (ii = 0; ii < len; ++ii) {
+		rem = pid % 10;
+		pid = pid / 10;
+		str[len - (ii + 1) + prefix_len] = rem + '0';
+	}
+
+	len += prefix_len;
+	str[len] = '/';
+	strcat(str, "core");
+}
+
+static void init_pax_header(struct posix_header *hdr, const char *prefix,
+                            const int prefix_len, const char type)
+{
+	fill_pax_header_name(hdr->name, prefix, prefix_len);
+	snprintf(hdr->mode, sizeof(hdr->mode), "%07o", 0644);
+	snprintf(hdr->uid, sizeof(hdr->uid), "%07o", 0);
+	snprintf(hdr->gid, sizeof(hdr->gid), "%07o", 0);
+	snprintf(hdr->mtime, sizeof(hdr->mtime), "%011llo",
+	         (long long)time(NULL));
+	memset(hdr->checksum, ' ', sizeof(hdr->checksum));
+	hdr->type = type;
+	memcpy(hdr->magic, "ustar\0", 6);
+	hdr->version[0] = '0';
+	hdr->version[1] = '0';
+	snprintf(hdr->username, sizeof(hdr->username), "root");
+	snprintf(hdr->groupname, sizeof(hdr->groupname), "root");
+}
+
+/*
+ * - Writes pax extended block entry to 'array'.
+ *   Entry format: "<length> <key>=<value>\n".
+ * - Returns the size of the entry written.
+ */
+int write_pax_extended_entry(char *array, const char *key, const char *value)
+{
+	char key_val[BLOCK_SIZE];
+	memset(key_val, 0, sizeof(key_val));
+
+	/* Write the key and value. */
+	strcat(key_val, key);
+	strcat(key_val, "=");
+	strcat(key_val, value);
+
+	/* Write a newline character. */
+	strcat(key_val, "\n");
+
+	int key_val_len = strlen(key_val);
+	int num_digits_for_key_val = num_digits((off64_t)key_val_len);
+
+	/* + 1 is for the space after <length>. */
+	int entry_len = num_digits_for_key_val + key_val_len + 1;
+	if (num_digits(entry_len) != num_digits_for_key_val) {
+		entry_len++;
+	}
+
+	char length[BLOCK_SIZE];
+	memset(length, 0, sizeof(length));
+	sprintf(length, "%d ", entry_len);
+	strcat(array, length);
+	strcat(array, key_val);
+	return entry_len;
+}
+
+static void build_sparse_map_linked_list(struct core_data *core_file,
+                                         struct posix_sparse_list *sparse_list)
+{
+	off64_t numbytes;
+	off64_t offset;
+	struct posix_sparse_list_element *cur_sparse_entry;
+	struct posix_sparse_list_element *last_sparse_entry;
+	struct core_data *next_block = core_file;
+
+	int ii;
+	for (ii = 0; next_block; ii++) {
+		next_block = get_tar_block_map(next_block, &offset, &numbytes);
+		/* If this is not the last block, fill the full block. */
+		if (next_block) {
+			numbytes = block_roundup(numbytes);
+		}
+		sparse_list->list_length++;
+		cur_sparse_entry = (struct posix_sparse_list_element *)
+		                    malloc(sizeof(struct posix_sparse_list_element));
+		cur_sparse_entry->offset = offset;
+		cur_sparse_entry->num_bytes = numbytes;
+		cur_sparse_entry->next_element = NULL;
+
+		if (!sparse_list->first_element) {
+			sparse_list->first_element = cur_sparse_entry;
+		} else {
+			last_sparse_entry->next_element = cur_sparse_entry;
+		}
+
+		last_sparse_entry = cur_sparse_entry;
+	}
+}
+
+static int dump_compressed_posix_tar(struct dump_info *di)
+{
+	if (!di->cfg->prog_config.core_in_tar) {
+		return -1;
+	}
+
+	if (!di->cfg->prog_config.core_compressor) {
+		return -1;
+	}
+
+	/* Initialize tar block 1 - header for PAX extended block. */
+	struct posix_header pax_hdr;
+	memset(&pax_hdr, 0, sizeof(pax_hdr));
+	char *pax_prefix = "./PaxHeaders.";
+	init_pax_header(&pax_hdr, pax_prefix, strlen(pax_prefix), 'x');
+
+	/* Initialize tar block 2 - PAX extended block (PEB). */
+	char PEB[BLOCK_SIZE];
+	memset(&PEB[0], 0, sizeof(PEB));
+
+	/* Fill in tar block 2 - PAX extended block (PEB). */
+	char realsize[BLOCK_SIZE];
+	memset(realsize, 0, sizeof(realsize));
+	sprintf(realsize, "%" PRId64 , di->core_file_size);
+	off64_t extended_block_filled_bytes = 0;
+	extended_block_filled_bytes +=
+	            write_pax_extended_entry(PEB, "GNU.sparse.major", "1");
+	extended_block_filled_bytes +=
+	            write_pax_extended_entry(PEB, "GNU.sparse.minor", "0");
+	extended_block_filled_bytes +=
+	            write_pax_extended_entry(PEB, "GNU.sparse.name", "core");
+	extended_block_filled_bytes +=
+	            write_pax_extended_entry(PEB, "GNU.sparse.realsize", realsize);
+
+	/* Fill in checksum and PEB (tar block 2) size in tar block 1. */
+	snprintf(pax_hdr.numbytes, sizeof(pax_hdr.numbytes), "%011" PRIo64,
+	         extended_block_filled_bytes);
+	snprintf(pax_hdr.checksum, sizeof(pax_hdr.checksum),
+	         "%06o", get_tar_checksum((char *)&pax_hdr));
+
+	/* Initialize tar block 3 - header for the sparse file. */
+	struct posix_header sparse_file_hdr;
+	memset(&sparse_file_hdr, 0, sizeof(sparse_file_hdr));
+	char *file_prefix = "./GNUSparseFile.";
+	init_pax_header(&sparse_file_hdr, file_prefix, strlen(file_prefix), '0');
+
+	/*
+	 * Initialize tar block 4 - mapping for the sparse file.
+	 * Contains the number of entries for the sparse mapping, then the offset
+	 * and number of bytes for each sparse entry in the format:-
+	 * offset <newline> num_bytes <newline>
+	 */
+	char *sparse_map_block = NULL;
+	struct posix_sparse_list sparse_list;
+	sparse_list.list_length = 0;
+	sparse_list.first_element = NULL;
+
+	/* Fill in the tar block 4 - sparse map. */
+
+	assign_tar_blocks(di->core_file);
+	build_sparse_map_linked_list(di->core_file, &sparse_list);
+
+	/* Compute the size of sparse map block needed. */
+	struct posix_sparse_list_element *cur_sparse_entry;
+	off64_t sparse_map_entries_size;
+
+	sparse_map_entries_size = 0;
+	char offset_string[BLOCK_SIZE];
+	char num_bytes_string[BLOCK_SIZE];
+	sparse_map_entries_size += (num_digits(sparse_list.list_length) + 1);
+	cur_sparse_entry = sparse_list.first_element;
+	while(cur_sparse_entry) {
+		sparse_map_entries_size += (num_digits(cur_sparse_entry->offset) +
+		                            num_digits(cur_sparse_entry->num_bytes) +
+		                            2);
+
+		cur_sparse_entry = cur_sparse_entry->next_element;
+	}
+
+	/* Fill in the sparse map block. */
+	off64_t sparse_map_block_size;
+	sparse_map_block_size = block_roundup(sparse_map_entries_size);
+	sparse_map_block = (char *)malloc(sparse_map_block_size);
+	memset(sparse_map_block, 0, sparse_map_block_size);
+	cur_sparse_entry = sparse_list.first_element;
+	sprintf(sparse_map_block, "%ld\n", sparse_list.list_length);
+	while (cur_sparse_entry) {
+		sprintf(offset_string, "%" PRId64 "\n" , cur_sparse_entry->offset);
+		sprintf(num_bytes_string, "%" PRId64 "\n",
+		        cur_sparse_entry->num_bytes);
+		strcat(sparse_map_block, offset_string);
+		strcat(sparse_map_block, num_bytes_string);
+		cur_sparse_entry = cur_sparse_entry->next_element;
+	}
+
+	/* Fill in checksum and sparse map block (block 4) size in tar block 2. */
+	snprintf(sparse_file_hdr.numbytes, sizeof(sparse_file_hdr.numbytes),
+	         "%011" PRIo64, strlen(sparse_map_block));
+
+	snprintf(sparse_file_hdr.checksum, sizeof(sparse_file_hdr.checksum),
+	         "%06o", get_tar_checksum((char *)&sparse_file_hdr));
+
+	/* Variables needed for writing the data. */
+	int err = -1;
+	char *buf;
+	int fd;
+	char *path = NULL;
+
+	buf = malloc(PAGESZ);
+	if (!buf) {
+		return -1;
+	}
+
+	/* Writing on 'fd'. Pipes to STDIN for compressor. */
+	fd = open_compressor(di, ".tar", &path);
+	if (fd < 0)
+		goto out;
+
+	/* Write pax header i.e. tar block 1. */
+	if (write_file_fd(fd, (char *)&pax_hdr, sizeof(pax_hdr)) < 0)
+		goto out;
+
+	/* Write extended header information block i.e. tar block 2. */
+	if (write_file_fd(fd, PEB, sizeof(PEB)) < 0)
+		goto out;
+
+	/* Write sparse file header i.e. tar block 3. */
+	if (write_file_fd(fd, (char *)&sparse_file_hdr,
+	                  sizeof(sparse_file_hdr)) < 0)
+		goto out;
+
+	/* Write mapping of sparse offsets and num_bytes i.e. tar block 4. */
+	if (write_file_fd(fd, sparse_map_block, sparse_map_block_size) < 0)
+		goto out;
+
+	/* Write data blocks. */
+	struct core_data *cur;
+	struct core_data *next_block;
+	size_t block_bytes_written;
+	off64_t numbytes;
+	off64_t offset;
+
+	block_bytes_written = 0;
+	next_block = get_tar_block_map(di->core_file, &offset, &numbytes);
+
+	for (cur = di->core_file; cur; cur = cur->next) {
+		if (cur == next_block) {
+			if (block_bytes_written % BLOCK_SIZE != 0) {
+				/* Fill to end of block. */
+				if (dump_zero_block_rest(fd, block_bytes_written) < 0) {
+					goto out;
+				}
+			}
+			next_block = get_tar_block_map(next_block, &offset, &numbytes);
+			block_bytes_written = 0;
+		}
+
+		if (lseek64(cur->mem_fd, cur->mem_start, SEEK_SET) == -1) {
+			info("lseek di->mem_fd failed at 0x%lx", cur->mem_start);
+			goto out;
+		}
+
+		if (cur->start != offset) {
+			/* Fill to beginning of block part. */
+			if (dump_zero(fd, cur->start - offset) < 0)
+				goto out;
+			block_bytes_written += cur->start - offset;
+		}
+
+		if (copy_data(cur->mem_fd, fd, -1, cur->end - cur->start, buf) < 0) {
+			goto out;
+		}
+		block_bytes_written += cur->end - cur->start;
+		offset = cur->end;
+	}
+
+	/* Fill to end of block. */
+	if (dump_zero_block_rest(fd, block_bytes_written) < 0)
+		goto out;
+
+	/* 2 empty blocks as EOF. */
+	if (dump_zero(fd, BLOCK_SIZE * 2) < 0)
+		goto out;
+
+	err = 0;
+
+	di->cfg->prog_config.core_compressed = true;
+	info("compressed core tar path: %s", path);
+out:
+	if (fd >= 0)
+		close_compressor(fd);
+	if (path) {
+		if (err)
+			unlink(path);
+		free(path);
+	}
+	free(buf);
+	return err;
+}
+
+static int dump_compressed_tar(struct dump_info *di)
+{
+	if (di->cfg->prog_config.using_posix_format) {
+		return dump_compressed_posix_tar(di);
+	} else {
+		return dump_compressed_gnu_tar(di);
+	}
 }
 
 static int dump_compressed_core(struct dump_info *di)
@@ -1526,6 +1841,7 @@ int add_core_data(struct dump_info *di, off64_t dest_offset, size_t len,
 
 	if (di->cfg->prog_config.core_in_tar &&
 	    di->cfg->prog_config.core_compressor &&
+	    !di->cfg->prog_config.using_posix_format &&
 	    (start > USTAR_MAXVAL || end > USTAR_MAXVAL)) {
 		info("core data too large for ustar format "
 		     "(0x%" PRIx64 "-0x%" PRIx64 "), dropping",
@@ -1657,6 +1973,8 @@ static void check_core_size(struct dump_info *di)
 		return;
 	if (!di->cfg->prog_config.core_compressor)
 		return;
+	if (di->cfg->prog_config.using_posix_format)
+		return;
 	if (di->core_file_size <= USTAR_MAXVAL)
 		return;
 
@@ -1676,6 +1994,8 @@ static int init_src_core(struct dump_info *di, int src)
 	size_t last_phnum = 0;
 	int tries = 0;
 	int ret = -1;
+
+	/* p = program, h = header, num = num of entries. */
 	size_t phnum;
 	size_t len;
 	char *buf;
