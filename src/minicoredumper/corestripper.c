@@ -1151,6 +1151,9 @@ static int dump_zero_block_rest(int fd, size_t block_bytes_written)
 	return dump_zero(fd, rest);
 }
 
+/* All tar numeric fields are 12 bytes. */
+#define TAR_NUMBER_SIZE 12
+
 /*
  * ustar stores numeric fields as octal ASCII, right-justified and
  * zero-padded, with one byte reserved for a NUL (or space) terminator.
@@ -1160,18 +1163,26 @@ static int dump_zero_block_rest(int fd, size_t block_bytes_written)
 #define USTAR_MAXVAL (UINT64_C(077777777777))
 
 /*
- * Write val into a tar header numeric field of the given size, using ustar
- * octal encoding when the value fits and GNU tar's base-256 extension
- * otherwise. Both encodings are understood by "tar x" (GNU tar and
- * libarchive), including in the old-GNU sparse map.
+ * Write val into a 12-byte tar header numeric field, using octal when the
+ * value fits and GNU tar's base-256 extension otherwise. Both encodings
+ * are understood by "tar x" (GNU tar and libarchive), including in the
+ * old-GNU sparse map.
  */
-static void put_tar_number(char *field, size_t size, uint64_t val)
+#define put_tar_number(field, val) \
+	do { \
+		_Static_assert(sizeof(field) == TAR_NUMBER_SIZE, \
+			       "tar numeric field must be 12 bytes"); \
+		put_tar_number_impl((field), (uint64_t)(val)); \
+	} while (0)
+
+static void put_tar_number_impl(char *field, uint64_t val)
 {
 	int i;
 
 	if (val <= USTAR_MAXVAL) {
 		/* octal ASCII; snprintf writes the trailing NUL terminator */
-		snprintf(field, size, "%0*" PRIo64, (int)size - 1, val);
+		snprintf(field, TAR_NUMBER_SIZE, "%0*" PRIo64,
+			 TAR_NUMBER_SIZE - 1, val);
 	} else {
 		/*
 		 * GNU base-256: flag the field with 0x80 in byte 0 and store
@@ -1179,7 +1190,7 @@ static void put_tar_number(char *field, size_t size, uint64_t val)
 		 * unsigned bytes, so the 0x80 flag needs no special handling.
 		 */
 		field[0] = (char)0x80;
-		for (i = (int)size - 1; i >= 1; i--) {
+		for (i = TAR_NUMBER_SIZE - 1; i >= 1; i--) {
 			field[i] = (char)(val & 0xff);
 			val >>= 8;
 		}
@@ -1306,12 +1317,8 @@ static int dump_compressed_tar(struct dump_info *di)
 			numbytes = block_roundup(numbytes);
 		/* dump sparse header */
 		if (i < 4) {
-			put_tar_number(hdr.sparse_map[i].offset,
-				       sizeof(hdr.sparse_map[i].offset),
-				       (uint64_t)offset);
-			put_tar_number(hdr.sparse_map[i].numbytes,
-				       sizeof(hdr.sparse_map[i].numbytes),
-				       (uint64_t)numbytes);
+			put_tar_number(hdr.sparse_map[i].offset, offset);
+			put_tar_number(hdr.sparse_map[i].numbytes, numbytes);
 
 			/* save first extended sparse block for later */
 			if (i == 3)
@@ -1320,13 +1327,11 @@ static int dump_compressed_tar(struct dump_info *di)
 		total_bytes += numbytes;
 	}
 
-	put_tar_number(hdr.numbytes, sizeof(hdr.numbytes),
-		       (uint64_t)total_bytes);
+	put_tar_number(hdr.numbytes, total_bytes);
 
 	if (extended_data)
 		hdr.is_extended = 1;
-	put_tar_number(hdr.filesize, sizeof(hdr.filesize),
-		       (uint64_t)di->core_file_size);
+	put_tar_number(hdr.filesize, di->core_file_size);
 
 	/* calculate checksum */
 	snprintf(hdr.checksum, sizeof(hdr.checksum),
@@ -1354,10 +1359,8 @@ static int dump_compressed_tar(struct dump_info *di)
 			if (next_block)
 				numbytes = block_roundup(numbytes);
 
-			put_tar_number(s.offset, sizeof(s.offset),
-				       (uint64_t)offset);
-			put_tar_number(s.numbytes, sizeof(s.numbytes),
-				       (uint64_t)numbytes);
+			put_tar_number(s.offset, offset);
+			put_tar_number(s.numbytes, numbytes);
 			if (write_file_fd(fd, (char *)&s, sizeof(s)) < 0)
 				goto out;
 			block_bytes_written += sizeof(s);
