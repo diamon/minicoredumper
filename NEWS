@@ -2,6 +2,14 @@
 minicoredumper Release Notes
 ============================
 
+2.1.0 (2026-09-03)
+
+    * Add support for core files larger than 8GB.
+
+    * Fix coreinject argument parsing bugs.
+
+    * Refresh coreinject man page.
+
 2.0.8 (2026-05-10)
 
     * Address multiple compiler warnings and errors found by more recent
