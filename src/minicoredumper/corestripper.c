@@ -1008,17 +1008,24 @@ static int copy_data(int src, int dest, int dest2, size_t len, char *pagebuf)
 	return 0;
 }
 
+/*
+ * All tar size/offset fields are 12 bytes. These support the GNU base-256
+ * encoding extension, which is used for sizes/offsets >= 8G.
+ */
+#define TAR_NUMBER_SIZE 12
+
 struct sparse {
-	char offset[12];
-	char numbytes[12];
+	char offset[TAR_NUMBER_SIZE];
+	char numbytes[TAR_NUMBER_SIZE];
 };
 
+/* Using old GNU sparse format header. */
 struct tar_header {
 	char name[100];
 	char mode[8];
 	char uid[8];
 	char gid[8];
-	char numbytes[12];
+	char numbytes[TAR_NUMBER_SIZE];
 	char mtime[12];
 	char checksum[8];
 	char type;
@@ -1036,7 +1043,7 @@ struct tar_header {
 	char pad0;
 	struct sparse sparse_map[4];
 	char is_extended;
-	char filesize[12];
+	char filesize[TAR_NUMBER_SIZE];
 	char pad1[17];
 };
 
@@ -1150,9 +1157,6 @@ static int dump_zero_block_rest(int fd, size_t block_bytes_written)
 
 	return dump_zero(fd, rest);
 }
-
-/* All tar numeric fields are 12 bytes. */
-#define TAR_NUMBER_SIZE 12
 
 /*
  * ustar stores numeric fields as octal ASCII, right-justified and
