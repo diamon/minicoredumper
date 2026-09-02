@@ -453,6 +453,7 @@ int main(int argc, char *argv[])
 	}
 
 	err = 0;
+	i++;
 
 	/* try to add binary dumps (continuing on error) */
 	for ( ; i < argc; i++) {
