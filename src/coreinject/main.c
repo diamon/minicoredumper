@@ -145,7 +145,7 @@ static int get_ident_data(const char *ident, FILE *f_symmap,
 			  struct ident_data *direct,
 			  struct ident_data *indirect)
 {
-	struct ident_data *d;
+	struct ident_data *d = NULL;
 	off64_t offset;
 	char line[128];
 	off64_t size;
@@ -214,6 +214,8 @@ static int get_ident_data(const char *ident, FILE *f_symmap,
 	if (indirect->size && direct->size)
 		direct->dump_offset += indirect->size;
 
+	if (!d)
+		return -1;
 	return 0;
 }
 
