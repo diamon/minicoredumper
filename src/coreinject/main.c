@@ -127,6 +127,7 @@ static int write_core(FILE *f_core, FILE *f_dump, struct ident_data *d,
 			d->size, strerror(errno));
 		goto out;
 	}
+	fflush(f_core);
 
 	add_dump_item(d->mem_offset, d->size);
 
