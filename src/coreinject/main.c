@@ -360,8 +360,8 @@ static int add_option(struct prog_option **options, const char *arg)
 	}
 
 	p1 = p2 + 1;
-	p2 = strchr(p1, '+');
-	if (!p2) {
+	p2 = strrchr(p1, '+');
+	if (!p2 || p1 == p2) {
 		fprintf(stderr, "error: invalid --data syntax: %s\n", arg);
 		goto err_out;
 	}
