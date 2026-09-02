@@ -220,7 +220,8 @@ static int get_ident_data(const char *ident, FILE *f_symmap,
 	return 0;
 }
 
-static void check_user_data(struct ident_data *d, struct prog_option *options)
+static void override_with_user_data(struct ident_data *d,
+				    struct prog_option *options)
 {
 	struct prog_option *o;
 
@@ -237,22 +238,13 @@ static void check_user_data(struct ident_data *d, struct prog_option *options)
 	}
 }
 
-static int inject_data(FILE *f_core, FILE *f_symmap, const char *b_fname,
-		       struct prog_option *options)
+static int inject_data(FILE *f_core, FILE *f_symmap, const char *ident,
+		       const char *b_fname, struct prog_option *options)
 {
 	struct ident_data indirect;
 	struct ident_data direct;
-	const char *ident;
-	const char *p;
 	FILE *f_dump;
 	int err = 0;
-
-	/* extract ident name from file path */
-	p = strrchr(b_fname, '/');
-	if (p)
-		ident = p + 1;
-	else
-		ident = b_fname;
 
 	/* get offsets/sizes from symbol map */
 	if (get_ident_data(ident, f_symmap, &direct, &indirect) != 0) {
@@ -264,8 +256,13 @@ static int inject_data(FILE *f_core, FILE *f_symmap, const char *b_fname,
 	if (direct.size > 0) {
 		direct.filename = b_fname;
 
-		/* replace/insert any user specified direct data */
-		check_user_data(&direct, options);
+		/* replace/insert any --data specified direct data */
+		override_with_user_data(&direct, options);
+
+		if (!direct.filename) {
+			fprintf(stderr, "error: no source file specified\n");
+			return -1;
+		}
 
 		/* open binary dump file for reading */
 		f_dump = fopen(direct.filename, "r");
@@ -281,7 +278,8 @@ static int inject_data(FILE *f_core, FILE *f_symmap, const char *b_fname,
 		fclose(f_dump);
 	}
 
-	if (indirect.size > 0) {
+	/* indirecty is only injected from binary dump files */
+	if (indirect.size > 0 && b_fname) {
 		indirect.filename = b_fname;
 
 		/* open binary dump file for reading */
@@ -403,7 +401,9 @@ int main(int argc, char *argv[])
 	struct prog_option *o;
 	FILE *f_symmap = NULL;
 	FILE *f_core = NULL;
+	const char *ident;
 	struct stat s;
+	const char *p;
 	int err = 1;
 	int i;
 
@@ -458,18 +458,25 @@ int main(int argc, char *argv[])
 	err = 0;
 	i++;
 
-	/* try to add binary dumps (continuing on error) */
+	/* add binary dump files specified as arguments */
 	for ( ; i < argc; i++) {
-		if (inject_data(f_core, f_symmap, argv[i], options) != 0)
+		/* extract ident name from file path */
+		p = strrchr(argv[i], '/');
+		if (p)
+			ident = p + 1;
+		else
+			ident = argv[i];
+
+		if (inject_data(f_core, f_symmap, ident, argv[i], options) != 0)
 			err |= 1;
 	}
 
-	/* try to add leftover specified direct data */
+	/* add direct data specified via --data option */
 	for (o = options; o; o = o->next) {
 		if (o->processed)
 			continue;
 
-		if (inject_data(f_core, f_symmap, o->ident, options) != 0)
+		if (inject_data(f_core, f_symmap, o->ident, NULL, options) != 0)
 			err |= 1;
 	}
 out:
